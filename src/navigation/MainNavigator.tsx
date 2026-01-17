@@ -14,6 +14,8 @@ import ProfileScreen from "@screens/profile/ProfileScreen";
 import EditProfileScreen from "@screens/profile/EditProfileScreen";
 import SettingsScreen from "../screens/profile/SettingsScreen";
 import NotificationsScreen from "../screens/notifications/NotificationsScreen";
+import DiscoveryScreen from "@/src/screens/discovery/DiscoveryScreen";
+import StudyScreen from "@/src/screens/study/StudyScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -97,6 +99,32 @@ const ProfileStack = () => (
 );
 
 /* ==============================
+   DISCOVERY STACK
+   ==============================*/
+const DiscoveryStack = () => (
+  <Stack.Navigator screenOptions={GLOBAL_HEADER_OPTIONS}>
+    <Stack.Screen
+      name={ROUTE_NAMES.DISCOVERY.SCREEN}
+      component={DiscoveryScreen}
+      options={{title: "Khám phá", headerBackVisible: false}}
+    />
+  </Stack.Navigator>
+);
+
+/* ==============================
+   STUDY STACK
+   ==============================*/
+const StudyStack = () => (
+  <Stack.Navigator screenOptions={GLOBAL_HEADER_OPTIONS}>
+    <Stack.Screen
+      name={ROUTE_NAMES.STUDY.SCREEN}
+      component={StudyScreen}
+      options={{title: "Học tập", headerBackVisible: false}}
+    />
+  </Stack.Navigator>
+);
+
+/* ==============================
    MAIN TAB NAVIGATOR
    ==============================*/
 /* ==============================
@@ -128,17 +156,28 @@ const MainNavigator = () => (
       headerShown: false,
       tabBarIcon: ({focused, color, size}) => {
          let iconName = "home";
-         if (route.name === ROUTE_NAMES.TABS.PROFILE) iconName = "person";
-         if (route.name === ROUTE_NAMES.TABS.GAME) iconName = "game-controller";
+         if (route.name === ROUTE_NAMES.TABS.HOME) {
+           iconName = focused ? SCREEN_OPTIONS.TAB_ICONS.HOME.focused : SCREEN_OPTIONS.TAB_ICONS.HOME.unfocused;
+         } else if (route.name === ROUTE_NAMES.TABS.DISCOVERY) {
+           iconName = focused ? SCREEN_OPTIONS.TAB_ICONS.DISCOVERY.focused : SCREEN_OPTIONS.TAB_ICONS.DISCOVERY.unfocused;
+         } else if (route.name === ROUTE_NAMES.TABS.STUDY) {
+           iconName = focused ? SCREEN_OPTIONS.TAB_ICONS.STUDY.focused : SCREEN_OPTIONS.TAB_ICONS.STUDY.unfocused;
+         } else if (route.name === ROUTE_NAMES.TABS.GAME) {
+           iconName = focused ? SCREEN_OPTIONS.TAB_ICONS.GAME.focused : SCREEN_OPTIONS.TAB_ICONS.GAME.unfocused;
+         } else if (route.name === ROUTE_NAMES.TABS.PROFILE) {
+           iconName = focused ? SCREEN_OPTIONS.TAB_ICONS.PROFILE.focused : SCREEN_OPTIONS.TAB_ICONS.PROFILE.unfocused;
+         }
          return <Ionicons name={iconName as any} size={size} color={color} />;
       },
       tabBarActiveTintColor: COLORS.PRIMARY,
       tabBarInactiveTintColor: COLORS.GRAY,
     })}
   >
-    <Tab.Screen name={ROUTE_NAMES.TABS.HOME} component={HomeStack} options={{tabBarLabel: "Di sản"}} />
-    <Tab.Screen name={ROUTE_NAMES.TABS.GAME} component={GameStack} options={{tabBarLabel: "Trò chơi"}} />
-    <Tab.Screen name={ROUTE_NAMES.TABS.PROFILE} component={ProfileStack} options={{tabBarLabel: "Cá nhân"}} />
+    <Tab.Screen name={ROUTE_NAMES.TABS.HOME} component={HomeStack} options={{tabBarLabel: "Trang chủ"}} />
+    <Tab.Screen name={ROUTE_NAMES.TABS.DISCOVERY} component={DiscoveryStack} options={{tabBarLabel: "Khám phá"}} />
+    <Tab.Screen name={ROUTE_NAMES.TABS.STUDY} component={StudyStack} options={{tabBarLabel: "Học tập"}} />
+    <Tab.Screen name={ROUTE_NAMES.TABS.GAME} component={GameStack} options={{tabBarLabel: "Game"}} />
+    <Tab.Screen name={ROUTE_NAMES.TABS.PROFILE} component={ProfileStack} options={{tabBarLabel: "Tài khoản"}} />
   </Tab.Navigator>
 );
 

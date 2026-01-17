@@ -62,8 +62,8 @@ const HomeScreen = ({navigation}: any) => {
       onPress={() => navigation.navigate(ROUTE_NAMES.HOME.HERITAGE_DETAIL, {id: item.id})}
     >
       <View style={styles.imageContainer}>
-        {item.images && item.images.length > 0 ? (
-          <Image source={{uri: getImageUrl(item.images[0])}} style={styles.image} resizeMode="cover" />
+        {item.imageUrl ? (
+          <Image source={{uri: getImageUrl(item.imageUrl)}} style={styles.image} resizeMode="cover" />
         ) : (
              <View style={[styles.image, styles.placeholder]}>
                 <Ionicons name="image-outline" size={48} color={COLORS.GRAY} />

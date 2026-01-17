@@ -11,6 +11,12 @@ export type RouteParams = {
   // Main Stack - Home
   HomeScreen: undefined;
   HeritageDetail: {id: number | string};
+  
+  // Main Stack - Discovery
+  DiscoveryScreen: undefined;
+
+  // Main Stack - Study
+  StudyScreen: undefined;
 
   // Main Stack - Profile
   ProfileScreen: undefined;
@@ -19,6 +25,10 @@ export type RouteParams = {
   // Common
   Notifications: undefined;
   Settings: undefined;
+  FavoritesList: undefined;
+  Support: undefined;
+  TermsPrivacy: undefined;
+  NotificationSettings: undefined;
 };
 
 export const ROUTE_NAMES = {
@@ -31,8 +41,20 @@ export const ROUTE_NAMES = {
   // Main Tabs
   TABS: {
     HOME: "Home",
-    PROFILE: "Profile",
+    DISCOVERY: "Discovery",
+    STUDY: "Study",
     GAME: "Game",
+    PROFILE: "Profile",
+  },
+
+  // Discovery Stack
+  DISCOVERY: {
+    SCREEN: "DiscoveryScreen",
+  },
+
+  // Study Stack
+  STUDY: {
+     SCREEN: "StudyScreen",
   },
 
   // Home Stack
@@ -81,6 +103,9 @@ export const SCREEN_OPTIONS = {
   // Tab bar icons
   TAB_ICONS: {
     HOME: {focused: "home", unfocused: "home-outline"},
+    DISCOVERY: {focused: "search", unfocused: "search-outline"},
+    STUDY: {focused: "book", unfocused: "book-outline"},
+    GAME: {focused: "basketball", unfocused: "basketball-outline"},
     PROFILE: {focused: "person", unfocused: "person-outline"},
   },
 } as const;

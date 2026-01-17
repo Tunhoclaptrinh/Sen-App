@@ -45,3 +45,24 @@ export interface RegisterRequest {
   password?: string;
   fullName?: string;
 }
+
+export type FavoriteType = 'restaurant' | 'product' | 'heritage' | 'article';
+
+export interface Favorite {
+  id: number;
+  type: FavoriteType;
+  referenceId: number;
+  item?: any;
+  createdAt: string;
+}
+
+export interface Review {
+  id: number;
+  userId: number;
+  userName: string;
+  userAvatar?: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  images?: string[];
+}

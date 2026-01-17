@@ -1,10 +1,10 @@
 export const COLORS = {
-  PRIMARY: "#FF6B6B",
+  PRIMARY: "#8b1d1d",
   SECONDARY: "#4ECDC4",
   SUCCESS: "#2ECC71",
   ERROR: "#E74C3C",
   WARNING: "#F39C12",
-  INFO: "#3498DB",
+  INFO: "#8b1d1d",
   LIGHT_GRAY: "#F5F5F5",
   GRAY: "#9CA3AF",
   DARK_GRAY: "#6B7280",

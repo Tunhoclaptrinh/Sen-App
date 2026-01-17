@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
   StatusBar
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -48,7 +49,7 @@ const GameHomeScreen = ({ navigation }: any) => {
       onPress={() => {
           // Navigate to levels
           // navigation.navigate('LevelList', { chapterId: chapter.id });
-          alert("Coming soon: Levels for " + chapter.title);
+          Alert.alert("Coming soon", "Levels for " + chapter.title);
       }}
     >
       <View style={styles.cardContent}>
@@ -59,7 +60,7 @@ const GameHomeScreen = ({ navigation }: any) => {
         <Text style={styles.chapterDesc}>{chapter.description}</Text>
         
         {chapter.minLevelRequired && (
-            <Text style={styles.requirement}>Yêu cầu cấp {chapter.minLevelRequired}</Text>
+            <Text style={[styles.requirement, {color: COLORS.ERROR}]}>Yêu cầu cấp {chapter.minLevelRequired}</Text>
         )}
       </View>
     </TouchableOpacity>
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
   },
   requirement: {
       fontSize: 12,
-      color: COLORS.RED,
+      color: COLORS.ERROR,
       marginTop: 8,
       fontStyle: 'italic',
   },

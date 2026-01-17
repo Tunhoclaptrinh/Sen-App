@@ -21,9 +21,7 @@ const EditProfileScreen = ({navigation}: any) => {
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    phone: user?.phone || "",
-    address: user?.address || "",
+    fullName: user?.fullName || "",
     avatar: user?.avatar || "",
   });
 
@@ -31,8 +29,7 @@ const EditProfileScreen = ({navigation}: any) => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = "Tên là bắt buộc";
-    if (!formData.phone.trim()) newErrors.phone = "Số điện thoại là bắt buộc";
+    if (!formData.fullName.trim()) newErrors.fullName = "Tên là bắt buộc";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -78,21 +75,16 @@ const EditProfileScreen = ({navigation}: any) => {
 
       // 1. Cập nhật thông tin văn bản
       const updateData = {
-        name: formData.name.trim(),
-        phone: formData.phone.trim(),
-        address: formData.address.trim(),
+        fullName: formData.fullName.trim(),
       };
 
       // ✅ SỬA LỖI: Thêm <any> để TypeScript không báo lỗi thiếu property 'data'
       const textRes = await apiClient.put<any>("/users/profile", updateData);
 
       // Kiểm tra kỹ cấu trúc response
-      if (textRes.success && textRes.data) { // Updated to match newer API response structure if possible, kept safe check
-          updatedUser = {...updatedUser, ...textRes.data};
-      } else if (textRes.data && textRes.data.success && textRes.data.data) {
-          // Legacy nested data support if needed
+      if (textRes.data && textRes.data.success) { 
           updatedUser = {...updatedUser, ...textRes.data.data};
-      }
+      } 
 
 
       // 2. Upload Avatar (Logic đã fix lỗi Network request failed)
@@ -153,9 +145,7 @@ const EditProfileScreen = ({navigation}: any) => {
 
   const hasChanges = () => {
     return (
-      formData.name !== user?.name ||
-      formData.phone !== user?.phone ||
-      formData.address !== user?.address ||
+      formData.fullName !== user?.fullName ||
       formData.avatar !== user?.avatar
     );
   };
@@ -170,7 +160,7 @@ const EditProfileScreen = ({navigation}: any) => {
               <Image source={{uri: getImageUrl(formData.avatar)}} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{formData.name?.charAt(0).toUpperCase() || "U"}</Text>
+                <Text style={styles.avatarText}>{formData.fullName?.charAt(0).toUpperCase() || "U"}</Text>
               </View>
             )}
             <View style={styles.cameraIconContainer}>
@@ -200,40 +190,10 @@ const EditProfileScreen = ({navigation}: any) => {
               <Text style={styles.label}>Họ và tên *</Text>
             </View>
             <Input
-              value={formData.name}
-              onChangeText={(name) => setFormData({...formData, name})}
+              value={formData.fullName}
+              onChangeText={(fullName) => setFormData({...formData, fullName})}
               placeholder="Nhập họ tên của bạn"
-              error={errors.name}
-              containerStyle={styles.input}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <View style={styles.labelContainer}>
-              <Ionicons name="call-outline" size={20} color={COLORS.GRAY} />
-              <Text style={styles.label}>Số điện thoại *</Text>
-            </View>
-            <Input
-              value={formData.phone}
-              onChangeText={(phone) => setFormData({...formData, phone})}
-              placeholder="0912345678"
-              keyboardType="phone-pad"
-              error={errors.phone}
-              containerStyle={styles.input}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <View style={styles.labelContainer}>
-              <Ionicons name="location-outline" size={20} color={COLORS.GRAY} />
-              <Text style={styles.label}>Địa chỉ</Text>
-            </View>
-            <Input
-              value={formData.address}
-              onChangeText={(address) => setFormData({...formData, address})}
-              placeholder="Nhập địa chỉ của bạn"
-              multiline
-              numberOfLines={3}
+              error={errors.fullName}
               containerStyle={styles.input}
             />
           </View>

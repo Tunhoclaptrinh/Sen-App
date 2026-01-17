@@ -1,5 +1,5 @@
 import {Address} from "react-native-maps";
-import {CartItem} from "../types";
+
 import {Linking, Platform, Alert} from "react-native";
 
 export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -13,28 +13,7 @@ export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2
   return R * c;
 };
 
-export const calculateDeliveryFee = (distance: number): number => {
-  const distanceKm = parseFloat(distance.toFixed(1)); // <--- QUAN TRỌNG
 
-  const BASE_FEE = 15000;
-  const PER_KM_FEE = 5000;
-  const EXTRA_PER_KM_FEE = 7000;
-
-  if (distanceKm <= 2) return BASE_FEE;
-  if (distanceKm <= 5) return BASE_FEE + Math.ceil(distanceKm - 2) * PER_KM_FEE;
-  return BASE_FEE + 3 * PER_KM_FEE + Math.ceil(distanceKm - 5) * EXTRA_PER_KM_FEE;
-};
-
-// Interface cho nhóm đơn hàng
-interface RestaurantGroup {
-  restaurantId: number;
-  restaurantName: string;
-  restaurantAddress: string;
-  items: CartItem[];
-  subtotal: number; // Tổng tiền món
-  distance: number;
-  deliveryFee: number;
-}
 
 export const openMap = (lat?: number, lng?: number, label?: string) => {
   if (!lat || !lng) {

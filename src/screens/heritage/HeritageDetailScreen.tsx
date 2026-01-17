@@ -49,8 +49,8 @@ const HeritageDetailScreen = ({route, navigation}: any) => {
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {/* Cover Image */}
         <View style={styles.coverContainer}>
-          {currentItem.images && currentItem.images.length > 0 ? (
-            <Image source={{uri: getImageUrl(currentItem.images[0])}} style={styles.coverImage} resizeMode="cover" />
+          {currentItem.imageUrl ? (
+            <Image source={{uri: getImageUrl(currentItem.imageUrl)}} style={styles.coverImage} resizeMode="cover" />
           ) : (
             <View style={[styles.coverImage, styles.placeholder]}>
                <Ionicons name="image-outline" size={64} color={COLORS.WHITE} />
@@ -76,16 +76,16 @@ const HeritageDetailScreen = ({route, navigation}: any) => {
               <Text style={styles.description}>{currentItem.description}</Text>
            </View>
 
-           {/* Gallery Preview (Optional) */}
-           {currentItem.images && currentItem.images.length > 1 && (
+           {/* Gallery Preview */}
+           {currentItem.gallery && currentItem.gallery.length > 0 && (
                <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Hình ảnh</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gallery}>
-                      {currentItem.images.slice(1).map((img, index) => (
-                          <Image 
-                            key={index} 
-                            source={{uri: getImageUrl(img)}} 
-                            style={styles.galleryImage} 
+                      {currentItem.gallery.map((img, index) => (
+                          <Image
+                            key={index}
+                            source={{uri: getImageUrl(img)}}
+                            style={styles.galleryImage}
                           />
                       ))}
                   </ScrollView>

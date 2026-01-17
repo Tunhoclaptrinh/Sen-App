@@ -203,35 +203,6 @@ export class MapService {
   }
 
   /**
-   * Create marker for restaurant
-   */
-  static createRestaurantMarker(restaurant: any): MapMarker {
-    return {
-      id: `restaurant-${restaurant.id}`,
-      coordinate: {
-        latitude: restaurant.latitude,
-        longitude: restaurant.longitude,
-      },
-      title: restaurant.name,
-      description: restaurant.address,
-      type: "restaurant",
-    };
-  }
-
-  /**
-   * Create marker for delivery location
-   */
-  static createDeliveryMarker(orderId: number, address: string, location: Location): MapMarker {
-    return {
-      id: `delivery-${orderId}`,
-      coordinate: location,
-      title: `Đơn hàng #${orderId}`,
-      description: address,
-      type: "delivery",
-    };
-  }
-
-  /**
    * Create marker for current location
    */
   static createCurrentLocationMarker(location: Location): MapMarker {

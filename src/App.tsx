@@ -1,5 +1,5 @@
 import React, {useEffect} from "react";
-import {ActivityIndicator, View, Text, TouchableOpacity} from "react-native";
+import {ActivityIndicator, View, Text, TouchableOpacity, Alert} from "react-native";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import {Provider, useDispatch, useSelector} from "react-redux";
@@ -37,7 +37,7 @@ const AppContent = () => {
                 onPress={() => {
                     import("./config/api.client").then(({apiClient}) => {
                         apiClient.setBaseUrl("http://10.0.2.2:3000/api");
-                        alert("Đã chuyển sang Emulator IP (10.0.2.2). App sẽ thử kết nối lại...");
+                        Alert.alert("Thông báo", "Đã chuyển sang Emulator IP (10.0.2.2). App sẽ thử kết nối lại...");
                         dispatch(initializeAuth());
                     });
                 }}
@@ -50,7 +50,7 @@ const AppContent = () => {
                 onPress={() => {
                      import("./config/api.client").then(({apiClient}) => {
                         apiClient.setBaseUrl("http://192.168.1.141:3000/api");
-                        alert("Đã chuyển sang LAN IP (192.168.1.141). App sẽ thử kết nối lại...");
+                        Alert.alert("Thông báo", "Đã chuyển sang LAN IP (192.168.1.141). App sẽ thử kết nối lại...");
                         dispatch(initializeAuth());
                     });
                 }}

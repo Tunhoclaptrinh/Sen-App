@@ -23,10 +23,6 @@ import { RootState } from "@/src/store";
 import { fetchNotifications, fetchUnreadCount } from "@/src/store/slices/notificationSlice";
 
 interface UserStats {
-  totalOrders: number;
-  completedOrders: number;
-  totalSpent: number;
-  avgOrderValue: number;
   totalReviews: number;
   avgRating: number;
   totalFavorites: number;
@@ -55,10 +51,6 @@ const ProfileScreen = ({navigation}: any) => {
       const response = await apiClient.get<{data?: {stats?: UserStats}}>(`/users/${user.id}/activity`);
       setStats(
         response.data?.data?.stats ?? {
-          totalOrders: 0,
-          completedOrders: 0,
-          totalSpent: 0,
-          avgOrderValue: 0,
           totalReviews: 0,
           avgRating: 0,
           totalFavorites: 0,
@@ -67,10 +59,6 @@ const ProfileScreen = ({navigation}: any) => {
     } catch (error) {
       console.error("Error loading stats:", error);
       setStats({
-        totalOrders: 0,
-        completedOrders: 0,
-        totalSpent: 0,
-        avgOrderValue: 0,
         totalReviews: 0,
         avgRating: 0,
         totalFavorites: 0,
@@ -109,14 +97,6 @@ const ProfileScreen = ({navigation}: any) => {
 
   const mainMenuItems = [
     {
-      icon: "notifications-outline",
-      title: "Thông báo",
-      subtitle: "Bạn có " + unreadCount + " thông báo chưa đọc.",
-      screen: ROUTE_NAMES.COMMON.NOTIFICATIONS,
-      color: COLORS.SECONDARY,
-      bgColor: "#E8F8F1",
-    },
-    {
       icon: "person-outline",
       title: "Chỉnh sửa hồ sơ",
       subtitle: "Cập nhật thông tin cá nhân của bạn",
@@ -125,28 +105,20 @@ const ProfileScreen = ({navigation}: any) => {
       bgColor: "#FFE5E5",
     },
     {
-      icon: "location-outline",
-      title: "Địa chỉ giao hàng",
-      subtitle: "Quản lý các địa chỉ đã lưu",
-      screen: "AddressList",
-      color: "#2ECC71",
+      icon: "notifications-outline",
+      title: "Thông báo",
+      subtitle: "Bạn có " + unreadCount + " thông báo chưa đọc.",
+      screen: ROUTE_NAMES.COMMON.NOTIFICATIONS,
+      color: COLORS.SECONDARY,
       bgColor: "#E8F8F1",
     },
-    {
+     {
       icon: "heart-outline",
       title: "Yêu thích của tôi",
-      subtitle: "Nhà hàng & món ăn bạn yêu thích",
+      subtitle: "Di sản & bài viết bạn yêu thích",
       screen: "FavoritesList",
       color: "#E91E63",
       bgColor: "#FCE4EC",
-    },
-    {
-      icon: "receipt-outline",
-      title: "Lịch sử đơn hàng",
-      subtitle: "Xem tất cả đơn hàng trước đây",
-      screen: "Orders",
-      color: "#9C27B0",
-      bgColor: "#F3E5F5",
     },
   ];
 
@@ -215,7 +187,7 @@ const ProfileScreen = ({navigation}: any) => {
                   <Image source={{uri: getImageUrl(user.avatar)}} style={styles.avatar} />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || "U"}</Text>
+                    <Text style={styles.avatarText}>{user?.fullName?.charAt(0).toUpperCase() || "U"}</Text>
                   </View>
                 )}
                 <TouchableOpacity style={styles.editAvatarButton} onPress={() => navigation.navigate("EditProfile")}>
@@ -224,7 +196,7 @@ const ProfileScreen = ({navigation}: any) => {
               </View>
 
               <View style={styles.userInfoContainer}>
-                <Text style={styles.userName}>{user?.name}</Text>
+                <Text style={styles.userName}>{user?.fullName}</Text>
                 <Text style={styles.userEmail}>{user?.email}</Text>
                 <View style={styles.roleBadge}>
                   <Ionicons name="shield-checkmark" size={10} color={COLORS.WHITE} />
@@ -238,36 +210,7 @@ const ProfileScreen = ({navigation}: any) => {
         {/* Stats Grid 2x2 */}
         {stats && (
           <View style={styles.statsGridSection}>
-            <TouchableOpacity
-              style={styles.statsCard}
-              onPress={() => navigation.navigate("OrderStats")}
-              activeOpacity={0.7}
-            >
-              <View style={styles.statsCardIcon}>
-                <Ionicons name="receipt-outline" size={24} color={COLORS.PRIMARY} />
-              </View>
-              <Text style={styles.statsCardLabel}>Tổng số đơn hàng</Text>
-              <Text style={styles.statsCardValue}>{stats.totalOrders}</Text>
-              <Text style={styles.statsCardDetail}>{stats.completedOrders} đã hoàn thành</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.statsCard}
-              onPress={() => navigation.navigate("OrderStats")}
-              activeOpacity={0.7}
-            >
-              <View style={styles.statsCardIcon}>
-                <Ionicons name="wallet-outline" size={24} color="#FFA000" />
-              </View>
-              <Text style={styles.statsCardLabel}>Tổng chi tiêu</Text>
-              <Text style={styles.statsCardValue}>
-                {formatCurrency(stats.totalSpent).substring(0, formatCurrency(stats.totalSpent).length - 3)}
-              </Text>
-              <Text style={styles.statsCardDetail}>
-                trung bình{" "}
-                {formatCurrency(stats.avgOrderValue).substring(0, formatCurrency(stats.avgOrderValue).length - 3)}
-              </Text>
-            </TouchableOpacity>
+            {/* Removed Order Stats and Spending Stats */ }
 
             <TouchableOpacity
               style={styles.statsCard}
@@ -282,18 +225,7 @@ const ProfileScreen = ({navigation}: any) => {
               <Text style={styles.statsCardDetail}>Mục đã lưu</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.statsCard}
-              onPress={() => navigation.navigate("MyReviews")}
-              activeOpacity={0.7}
-            >
-              <View style={styles.statsCardIcon}>
-                <Ionicons name="star" size={24} color="#4CAF50" />
-              </View>
-              <Text style={styles.statsCardLabel}>Đánh giá TB</Text>
-              <Text style={styles.statsCardValue}>{stats.avgRating.toFixed(1)} ⭐</Text>
-              <Text style={styles.statsCardDetail}>{stats.totalReviews} đánh giá</Text>
-            </TouchableOpacity>
+            {/* Removed My Reviews Card */ }
           </View>
         )}
 
@@ -319,28 +251,7 @@ const ProfileScreen = ({navigation}: any) => {
               </TouchableOpacity>
             ))}
 
-            {/* Shipper only: Delivery History */}
-            {user?.role === "shipper" && (
-              <TouchableOpacity
-                style={[styles.mainMenuItem]}
-                onPress={() => {
-                  navigation.navigate("ShipperHistory");
-                  navigation.navigate("ShipperHistoryDelivery");
-                  navigation.getParent?.()?.navigate?.("Dashboard", {screen: "ShipperHistory"});
-                  navigation.getParent?.()?.navigate?.("Profile", {screen: "ShipperHistoryDelivery"});
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.menuIcon, {backgroundColor: "#EAF7FF"}]}>
-                  <Ionicons name="time-outline" size={20} color={COLORS.PRIMARY} />
-                </View>
-                <View style={styles.mainMenuContent}>
-                  <Text style={styles.menuTitle}>Lịch sử giao hàng</Text>
-                  <Text style={styles.menuSubtitle}>Xem lịch sử giao hàng của bạn</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.GRAY} />
-              </TouchableOpacity>
-            )}
+            {/* Removed Shipper Menu */ }
           </View>
         </View>
 
