@@ -18,7 +18,9 @@ import {LinearGradient} from "expo-linear-gradient";
 import {COLORS} from "@/src/styles/colors";
 import {getImageUrl} from "@/src/utils/formatters";
 import {ROUTE_NAMES} from "@/src/navigation";
-import {useNotifications} from "@/src/stores/notificationStore";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/src/store";
+import { fetchNotifications, fetchUnreadCount } from "@/src/store/slices/notificationSlice";
 
 interface UserStats {
   totalOrders: number;
@@ -35,11 +37,14 @@ const ProfileScreen = ({navigation}: any) => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const {unreadCount, fetchAll} = useNotifications();
+  
+  const dispatch = useDispatch<any>();
+  const { unreadCount } = useSelector((state: RootState) => state.notifications);
 
   useEffect(() => {
     loadUserStats();
-    fetchAll();
+    dispatch(fetchNotifications());
+    dispatch(fetchUnreadCount());
   }, []);
 
   const loadUserStats = async () => {
@@ -373,7 +378,7 @@ const ProfileScreen = ({navigation}: any) => {
 
         {/* App Version */}
         <View style={styles.versionSection}>
-          <Text style={styles.versionText}>FunFood Mobile</Text>
+          <Text style={styles.versionText}>SEN Mobile</Text>
           <Text style={styles.versionNumber}>Version 1.0.0</Text>
         </View>
 

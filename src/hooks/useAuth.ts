@@ -1,45 +1,49 @@
 import {useCallback} from "react";
-import {useAuthStore} from "@stores/authStore";
-import {AuthService} from "@services/auth.service";
+import {useDispatch, useSelector} from "react-redux";
+import {RootState} from "@/src/store";
+import {login as loginAction, register as registerAction, logout as logoutAction, initializeAuth, updateUser} from "@/src/store/slices/authSlice";
+import {AuthService} from "@/src/services/auth.service";
 import {LoginRequest, RegisterRequest} from "../types";
 
 export const useAuth = () => {
-  const {user, token, isLoading, isAuthenticated, setUser, logout, restoreSession} = useAuthStore();
+  const dispatch = useDispatch<any>();
+  const {user, token, loading: isLoading, isAuthenticated} = useSelector((state: RootState) => state.auth);
 
   const login = useCallback(
     async (credentials: LoginRequest) => {
       try {
-        const result = await AuthService.login(credentials);
-        await setUser(result.user, result.token);
+        const result = await dispatch(loginAction(credentials)).unwrap();
         return result;
       } catch (error) {
         throw error;
       }
     },
-    [setUser]
+    [dispatch]
   );
 
   const register = useCallback(
     async (data: RegisterRequest) => {
       try {
-        const result = await AuthService.register(data);
-        await setUser(result.user, result.token);
+        const result = await dispatch(registerAction(data)).unwrap();
         return result;
       } catch (error) {
         throw error;
       }
     },
-    [setUser]
+    [dispatch]
   );
 
   const signOut = useCallback(async () => {
     try {
-      await AuthService.logout();
-      await logout();
+      await dispatch(logoutAction()).unwrap();
     } catch (error) {
-      throw error;
+      // Ignore error during logout
     }
-  }, [logout]);
+  }, [dispatch]);
+
+  const restoreSession = useCallback(async () => {
+     await dispatch(initializeAuth());
+  }, [dispatch]);
 
   /**
    * Bổ sung: Hàm làm mới thông tin user từ server
@@ -48,18 +52,19 @@ export const useAuth = () => {
   const refreshUser = useCallback(async () => {
     try {
       // Gọi API /auth/me để lấy user & token mới nhất
+      // Có thể dùng action riêng hoặc gọi trực tiếp service rồi dispatch updateUser
       const result = await AuthService.getMe();
 
       // Cập nhật lại vào store
-      if (result && result.user) {
-        await setUser(result.user, result.token);
+      if (result) {
+         dispatch(updateUser(result));
       }
       return result;
     } catch (error) {
       console.error("Refresh user failed:", error);
       throw error;
     }
-  }, [setUser]);
+  }, [dispatch]);
 
   return {
     user,

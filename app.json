@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "funfood-mobile",
-    "slug": "funfood-mobile",
+    "name": "SEN",
+    "slug": "sen",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.ntt1604.funfood",
+      "package": "com.ntt1604.sen",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -39,6 +39,16 @@
         "projectId": "ff9d1641-1865-4385-9efb-82f065083dc9"
       }
     },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
     "owner": "ntt1604"
   }
 }

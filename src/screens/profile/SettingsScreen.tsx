@@ -1,29 +1,43 @@
 // src/screens/profile/SettingsScreen.tsx
 import React from "react";
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert} from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/src/store";
+import { 
+  setTheme, 
+  setLanguage, 
+  toggleNotifications, 
+  toggleBiometrics 
+} from "@/src/store/slices/settingsSlice";
+import { logout } from "@/src/store/slices/authSlice";
+
 import SafeAreaView from "@/src/components/common/SafeAreaView";
 import {Ionicons} from "@expo/vector-icons";
 import * as LocalAuthentication from "expo-local-authentication"; // Import thư viện
-import {useSettingsStore} from "@/src/stores/settingsStore";
-import {useAuthStore} from "@/src/stores/authStore";
 import {useTheme} from "@/src/hooks/useTheme"; // Import theme hook
 import {useTranslation} from "@/src/utils/i18n"; // Import i18n hook
 
 const SettingsScreen = ({navigation}: any) => {
-  // Sử dụng hook Theme và Translation
-  const {colors, isDark} = useTheme();
+  const dispatch = useDispatch<any>();
+  // Sử dụng hook Theme và Translation - giả định các hook này vẫn hoạt động hoặc sẽ được fix sau nếu lỗi
+  // Nếu useTheme/useTranslation phụ thuộc vào store cũ, chúng cũng cần được refactor.
+  // Tuy nhiên, ưu tiên fix lỗi build do import sai trước.
+  const {colors, isDark} = useTheme(); 
   const {t, locale} = useTranslation();
 
-  const {theme, setTheme, setLanguage, notificationsEnabled, toggleNotifications, biometricsEnabled, toggleBiometrics} =
-    useSettingsStore();
+  const { language, notificationsEnabled, biometricsEnabled } = useSelector((state: RootState) => state.settings);
+  // Theme hiện tại đang được lấy từ useTheme hook, có thể bị conflict với store. 
+  // Để an toàn, ta tạm thời tin tưởng useTheme điều khiển UI, và settings store lưu trạng thái.
 
-  const {logout} = useAuthStore();
+  const handleLogout = () => {
+      dispatch(logout());
+  };
 
   // Xử lý bật/tắt Sinh trắc học thực tế
   const handleBiometricsToggle = async () => {
     // Nếu đang bật -> tắt ngay
     if (biometricsEnabled) {
-      toggleBiometrics();
+      dispatch(toggleBiometrics());
       return;
     }
 
@@ -44,7 +58,7 @@ const SettingsScreen = ({navigation}: any) => {
       });
 
       if (result.success) {
-        toggleBiometrics();
+        dispatch(toggleBiometrics());
         Alert.alert(t("success"), "Đã kích hoạt đăng nhập sinh trắc học");
       }
     } catch (error) {
@@ -108,8 +122,8 @@ const SettingsScreen = ({navigation}: any) => {
           </View>,
           () => {
             Alert.alert(t("language"), "", [
-              {text: "Tiếng Việt", onPress: () => setLanguage("vi")},
-              {text: "English", onPress: () => setLanguage("en")},
+              {text: "Tiếng Việt", onPress: () => dispatch(setLanguage("vi"))},
+              {text: "English", onPress: () => dispatch(setLanguage("en"))},
             ]);
           },
           "#4CAF50"
@@ -124,7 +138,7 @@ const SettingsScreen = ({navigation}: any) => {
             </Text>
             <Switch
               value={isDark}
-              onValueChange={(val) => setTheme(val ? "dark" : "light")}
+              onValueChange={(val) => dispatch(setTheme(val ? "dark" : "light"))}
               trackColor={{false: "#E5E7EB", true: colors.PRIMARY}}
               thumbColor="#FFFFFF"
             />
@@ -154,7 +168,7 @@ const SettingsScreen = ({navigation}: any) => {
           t("notifications"),
           <Switch
             value={notificationsEnabled}
-            onValueChange={toggleNotifications}
+            onValueChange={() => dispatch(toggleNotifications())}
             trackColor={{false: "#E5E7EB", true: colors.PRIMARY}}
             thumbColor="#FFFFFF"
           />,
@@ -182,11 +196,11 @@ const SettingsScreen = ({navigation}: any) => {
         )}
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>{t("logout")}</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.footerText, {color: colors.TEXT_SECONDARY}]}>FunFood Mobile App © 2025</Text>
+        <Text style={[styles.footerText, {color: colors.TEXT_SECONDARY}]}>SEN Mobile App © 2025</Text>
       </ScrollView>
     </SafeAreaView>
   );

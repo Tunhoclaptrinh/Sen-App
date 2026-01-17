@@ -4,7 +4,7 @@ import {useAuth} from "@hooks/useAuth";
 import Input from "@/src/components/common/Input/Input";
 import Button from "@/src/components/common/Button";
 // @ts-ignore
-import logo from "@/assets/funfood-logo/logo5.png";
+import logo from "@/assets/sen-logo/logo5.png";
 
 import {validateEmail, validatePassword} from "@utils/validation";
 import {COLORS} from "@/src/styles/colors";
@@ -12,7 +12,7 @@ import {useTranslation} from "@/src/utils/i18n";
 import {useTheme} from "@react-navigation/native";
 
 const LoginScreen = ({navigation}: any) => {
-  const [email, setEmail] = useState("user@funfood.com");
+  const [email, setEmail] = useState("user@sen.com");
   const [password, setPassword] = useState("123456");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const {login} = useAuth();

@@ -1,52 +1,58 @@
 import {useEffect, useState} from "react";
 import {View, ScrollView, Text, TouchableOpacity, RefreshControl, ActivityIndicator, Alert} from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/src/store";
+import { 
+    fetchNotifications, 
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification, 
+    clearAllNotifications 
+} from "@/src/store/slices/notificationSlice";
+
 import SafeAreaView from "@/src/components/common/SafeAreaView";
 import {Ionicons} from "@expo/vector-icons";
-import {useNotifications} from "@stores/notificationStore";
 import EmptyState from "@/src/components/common/EmptyState/EmptyState";
 import {COLORS} from "@/src/styles/colors";
 import {formatDistanceToNow} from "date-fns";
 import {vi} from "date-fns/locale";
 import styles from "./styles";
+import { Notification } from "@/src/services/notification.service";
 
 const NotificationsScreen = ({navigation}: any) => {
-  const {
-    items,
-    isLoading,
-    isRefreshing,
-    error,
-    fetchAll,
-    refresh,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    clearAll,
-    unreadCount,
-  } = useNotifications();
-
+  const dispatch = useDispatch<any>();
+  const { items, loading, unreadCount } = useSelector((state: RootState) => state.notifications);
   const [selectedTab, setSelectedTab] = useState<"all" | "unread">("all");
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchAll();
-  }, []);
+    loadData();
+  }, [dispatch]);
 
-  const handleRefresh = () => {
-    refresh();
+  const loadData = async () => {
+      await dispatch(fetchNotifications());
   };
 
-  const handleNotificationPress = async (notification: any) => {
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
+
+  const handleNotificationPress = async (notification: Notification) => {
     // Mark as read
     if (!notification.isRead) {
-      await markAsRead(notification.id);
+      dispatch(markAsRead(notification.id));
     }
 
     // Navigate based on type
     if (notification.type === "order" && notification.refId) {
-      navigation.navigate("OrderDetail", {orderId: notification.refId});
+       // Legacy handling or new heritage logic
+      // navigation.navigate("OrderDetail", {orderId: notification.refId});
     } else if (notification.type === "promotion") {
-      navigation.navigate("Search");
+      // navigation.navigate("Search");
     } else if (notification.type === "review" && notification.refId) {
-      navigation.navigate("RestaurantDetail", {restaurantId: notification.refId});
+      // navigation.navigate("RestaurantDetail", {restaurantId: notification.refId});
     }
   };
 
@@ -55,7 +61,7 @@ const NotificationsScreen = ({navigation}: any) => {
       {text: "Hủy", style: "cancel"},
       {
         text: "Xóa",
-        onPress: () => deleteNotification(id),
+        onPress: () => dispatch(deleteNotification(id)),
         style: "destructive",
       },
     ]);
@@ -68,7 +74,7 @@ const NotificationsScreen = ({navigation}: any) => {
     }
     Alert.alert("Đánh dấu đã đọc", "Đánh dấu tất cả thông báo là đã đọc?", [
       {text: "Hủy", style: "cancel"},
-      {text: "Đồng ý", onPress: markAllAsRead},
+      {text: "Đồng ý", onPress: () => dispatch(markAllAsRead())},
     ]);
   };
 
@@ -77,7 +83,7 @@ const NotificationsScreen = ({navigation}: any) => {
       {text: "Hủy", style: "cancel"},
       {
         text: "Xóa tất cả",
-        onPress: clearAll,
+        onPress: () => dispatch(clearAllNotifications()),
         style: "destructive",
       },
     ]);
@@ -126,7 +132,7 @@ const NotificationsScreen = ({navigation}: any) => {
 
   const filteredItems = selectedTab === "unread" ? items.filter((item) => !item.isRead) : items;
 
-  if (isLoading && items.length === 0) {
+  if (loading && items.length === 0 && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
@@ -177,7 +183,7 @@ const NotificationsScreen = ({navigation}: any) => {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={isRefreshing}
+              refreshing={refreshing}
               onRefresh={handleRefresh}
               colors={[COLORS.PRIMARY]}
               tintColor={COLORS.PRIMARY}

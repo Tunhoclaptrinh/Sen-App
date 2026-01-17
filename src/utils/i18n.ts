@@ -1,5 +1,5 @@
 // src/utils/i18n.ts
-import {useSettingsStore} from "@/src/stores/settingsStore";
+
 
 const translations = {
   vi: {
@@ -49,8 +49,11 @@ const translations = {
 };
 
 // Hook để lấy text
+import { useSelector } from "react-redux";
+import { RootState } from "@/src/store";
+
 export const useTranslation = () => {
-  const language = useSettingsStore((state) => state.language);
+  const language = useSelector((state: RootState) => state.settings.language);
 
   return {
     t: (key: keyof (typeof translations)["vi"]) => translations[language][key] || key,

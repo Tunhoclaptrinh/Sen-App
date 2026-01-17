@@ -1,7 +1,5 @@
 export const API_CONFIG = {
-  // Use 10.0.2.2 for Android Emulator to access localhost
-  // Use localhost for iOS/Web
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:3000/api",
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || "http://192.168.137.1:3000/api",
   TIMEOUT: 30000,
   RETRY_COUNT: 3,
 };

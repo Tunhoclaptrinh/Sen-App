@@ -7,7 +7,7 @@ const FaqPaymentIssueScreen = () => {
       <Text style={styles.title}>Sự cố khi thanh toán?</Text>
 
       <Text style={styles.text}>
-        Nếu bạn gặp lỗi thanh toán trên FunFood, hãy thử các bước sau:
+        Nếu bạn gặp lỗi thanh toán trên SEN, hãy thử các bước sau:
       </Text>
 
       <Text style={styles.step}>
@@ -21,7 +21,7 @@ const FaqPaymentIssueScreen = () => {
       </Text>
 
       <Text style={styles.note}>
-        Nếu lỗi vẫn tiếp diễn, vui lòng liên hệ FunFood Support và liên hệ "Kênh liên hệ hỗ trợ" để được hỗ trợ
+        Nếu lỗi vẫn tiếp diễn, vui lòng liên hệ SEN Support và liên hệ "Kênh liên hệ hỗ trợ" để được hỗ trợ
         nhanh hơn và trực tiếp với nhà hàng.
       </Text>
     </ScrollView>

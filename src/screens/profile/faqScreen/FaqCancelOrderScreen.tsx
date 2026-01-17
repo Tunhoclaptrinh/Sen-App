@@ -10,7 +10,7 @@ const FaqCancelOrderScreen = () => {
         Bạn có thể hủy đơn khi đơn hàng chưa được nhà hàng xác nhận.
       </Text>
 
-      <Text style={styles.step}>1. Mở ứng dụng FunFood.</Text>
+      <Text style={styles.step}>1. Mở ứng dụng SEN.</Text>
       <Text style={styles.step}>2. Vào mục Đơn hàng của tôi.</Text>
       <Text style={styles.step}>3. Chọn đơn muốn hủy.</Text>
       <Text style={styles.step}>4. Nhấn “Hủy đơn hàng”.</Text>

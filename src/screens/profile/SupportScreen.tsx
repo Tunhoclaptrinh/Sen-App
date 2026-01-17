@@ -46,7 +46,7 @@ export default function SupportScreen() {
       </Text>
 
       <Text style={{ fontSize: 15, color: "#555", marginBottom: 25 }}>
-        Nơi bạn có thể xem hướng dẫn và tìm câu trả lời cho các vấn đề thường gặp khi sử dụng FunFood.
+        Nơi bạn có thể xem hướng dẫn và tìm câu trả lời cho các vấn đề thường gặp khi sử dụng SEN.
       </Text>
 
       {/* SECTION 1 — CONTACT */}
@@ -162,7 +162,7 @@ export default function SupportScreen() {
           marginBottom: 40,
         }}
       >
-        FunFood luôn sẵn sàng hỗ trợ bạn 24/7.
+        SEN luôn sẵn sàng hỗ trợ bạn 24/7.
       </Text>
     </ScrollView>
   );

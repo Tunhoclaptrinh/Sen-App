@@ -10,8 +10,7 @@ export type RouteParams = {
 
   // Main Stack - Home
   HomeScreen: undefined;
-  RestaurantDetail: {restaurantId: number}; // Keeping for now if referenced elsewhere, but can remove later
-  ProductDetail: {productId: number}; // Keeping for now if referenced elsewhere, but can remove later
+  HeritageDetail: {id: number | string};
 
   // Main Stack - Profile
   ProfileScreen: undefined;
@@ -40,8 +39,6 @@ export const ROUTE_NAMES = {
   HOME: {
     SCREEN: "HomeScreen",
     HERITAGE_DETAIL: "HeritageDetail",
-    // RESTAURANT_DETAIL: "RestaurantDetail", // Commenting out until deleted fully
-    // PRODUCT_DETAIL: "ProductDetail",
   },
 
   // Profile Stack

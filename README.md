@@ -1,4 +1,4 @@
-# 🍔 FunFood Mobile - Food Delivery App
+# 🍔 SEN Mobile - Food Delivery App
 
 ## 📋 Table of Contents
 
@@ -17,7 +17,7 @@
 
 ## 🎯 Overview
 
-FunFood là ứng dụng đặt đồ ăn trực tuyến được xây dựng với React Native và Expo. Ứng dụng hỗ trợ đa vai trò (Customer, Shipper, Admin) với kiến trúc base components có thể tái sử dụng.
+SEN là ứng dụng đặt đồ ăn trực tuyến được xây dựng với React Native và Expo. Ứng dụng hỗ trợ đa vai trò (Customer, Shipper, Admin) với kiến trúc base components có thể tái sử dụng.
 
 ### Key Highlights
 
@@ -71,9 +71,9 @@ FunFood là ứng dụng đặt đồ ăn trực tuyến được xây dựng v�
 ## 📁 Project Structure
 
 ```
-funfood-mobile/
+sen-mobile/
 ├── assets/                          # Static assets
-│   ├── funfood-logo/               # App logos
+│   ├── sen-logo/               # App logos
 │   ├── icon.png                    # App icon
 │   └── splash-icon.png             # Splash screen
 │
@@ -245,11 +245,11 @@ Factory function tạo Zustand stores với đầy đủ tính năng:
 // Create store
 export const useRestaurantStore = createBaseStore<Restaurant>(RestaurantService, "restaurants", {
   pageSize: 20,
-  initialSort: {field: "rating", order: "desc"},
+  initialSort: { field: "rating", order: "desc" },
 });
 
 // Use in component
-const {items, isLoading, fetchAll, search, setFilters, applyFilters} = useRestaurantStore();
+const { items, isLoading, fetchAll, search, setFilters, applyFilters } = useRestaurantStore();
 
 // Fetch data
 useEffect(() => {
@@ -260,7 +260,7 @@ useEffect(() => {
 search("pizza");
 
 // Filter
-setFilters({categoryId: 1, isOpen: true});
+setFilters({ categoryId: 1, isOpen: true });
 applyFilters();
 ```
 
@@ -281,18 +281,18 @@ Powerful hook for API calls với advanced features:
 
 ```typescript
 // Basic usage
-const {data, loading, error, execute} = useApi(restaurantService.getNearby);
+const { data, loading, error, execute } = useApi(restaurantService.getNearby);
 
 // With callbacks
-const {data, execute} = useApi(restaurantService.getNearby, {
+const { data, execute } = useApi(restaurantService.getNearby, {
   onSuccess: (data) => console.log("Loaded:", data),
   onError: (error) => console.error("Error:", error),
 });
 
 // Auto execute
-const {data, loading} = useApi(restaurantService.getAll, {
+const { data, loading } = useApi(restaurantService.getAll, {
   immediate: true,
-  immediateArgs: [{page: 1, limit: 10}],
+  immediateArgs: [{ page: 1, limit: 10 }],
 });
 ```
 
@@ -465,8 +465,8 @@ expo-cli
 1. **Clone repository**
 
 ```bash
-git clone https://github.com/your-repo/funfood-mobile.git
-cd funfood-mobile
+git clone https://github.com/your-repo/sen-mobile.git
+cd sen-mobile
 ```
 
 2. **Install dependencies**
@@ -645,7 +645,7 @@ const affordable = await ProductService.getByPriceRange(10000, 50000);
 // Create order
 const order = await OrderService.createOrder({
   restaurantId: 1,
-  items: [{productId: 1, quantity: 2}],
+  items: [{ productId: 1, quantity: 2 }],
   deliveryAddress: "123 Main St",
   paymentMethod: "cash",
 });
@@ -667,19 +667,19 @@ await OrderService.rateOrder(orderId, 5, "Great food!");
 ### Auth Store
 
 ```typescript
-const {user, token, isAuthenticated, isLoading, setUser, logout, restoreSession} = useAuthStore();
+const { user, token, isAuthenticated, isLoading, setUser, logout, restoreSession } = useAuthStore();
 ```
 
 ### Cart Store
 
 ```typescript
-const {items, totalItems, totalPrice, addItem, removeItem, updateQuantity, clearCart} = useCartStore();
+const { items, totalItems, totalPrice, addItem, removeItem, updateQuantity, clearCart } = useCartStore();
 ```
 
 ### Restaurant Store
 
 ```typescript
-const {items, isLoading, error, fetchAll, search, setFilters, applyFilters, refresh} = useRestaurantStore();
+const { items, isLoading, error, fetchAll, search, setFilters, applyFilters, refresh } = useRestaurantStore();
 ```
 
 ---
@@ -689,7 +689,7 @@ const {items, isLoading, error, fetchAll, search, setFilters, applyFilters, refr
 ### Centralized Routes
 
 ```typescript
-import {ROUTE_NAMES} from "@/src/config/routes.config";
+import { ROUTE_NAMES } from "@/src/config/routes.config";
 
 // Navigate to screens
 navigation.navigate(ROUTE_NAMES.HOME.RESTAURANT_DETAIL, {
@@ -700,7 +700,7 @@ navigation.navigate(ROUTE_NAMES.HOME.RESTAURANT_DETAIL, {
 ### Navigation Service
 
 ```typescript
-import {NavigationService} from "@/src/services/navigation.service";
+import { NavigationService } from "@/src/services/navigation.service";
 
 // Navigate from anywhere (services, utils)
 NavigationService.toRestaurantDetail(1);
@@ -752,7 +752,7 @@ class RestaurantService extends BaseApiService<Restaurant> {
 
 ```typescript
 // ❌ String literals
-navigation.navigate("RestaurantDetail", {id: 1});
+navigation.navigate("RestaurantDetail", { id: 1 });
 
 // ✅ Type-safe constants
 navigation.navigate(ROUTE_NAMES.HOME.RESTAURANT_DETAIL, {
@@ -812,8 +812,8 @@ Edit `src/config/routes.config.ts`
 <!--
 ## 📞 Support
 
-For support, email: support@funfood.com (Fake!) -->
+For support, email: support@sen.com (Fake!) -->
 
 ---
 
-**Built with ❤️ by FunFood Team**
+**Built with ❤️ by SEN Team**

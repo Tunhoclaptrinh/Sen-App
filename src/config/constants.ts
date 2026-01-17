@@ -1,4 +1,4 @@
-export const APP_NAME = "FunFood";
+export const APP_NAME = "SEN";
 export const API_VERSION = "v1";
 export const API_TIMEOUT = 10000;
 export const PAGINATION_LIMIT = 10;

@@ -14,7 +14,7 @@ const FaqMissingFoodScreen = () => {
         2. Kiểm tra lại thông tin đơn hàng trong ứng dụng.
       </Text>
       <Text style={styles.step}>
-        3. Liên hệ FunFood qua mục "Kênh liên hệ hỗ trợ" để được xử lý trực tiếp và nhanh chóng.
+        3. Liên hệ SEN qua mục "Kênh liên hệ hỗ trợ" để được xử lý trực tiếp và nhanh chóng.
       </Text>
 
       <Text style={styles.note}>

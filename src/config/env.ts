@@ -6,7 +6,7 @@ const ENV = {
     logLevel: "debug",
   },
   staging: {
-    apiUrl: "https://staging-api.funfood.com",
+    apiUrl: "https://staging-api.sen.com",
     logLevel: "info",
   },
   production: {

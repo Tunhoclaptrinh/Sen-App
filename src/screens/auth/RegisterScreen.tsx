@@ -5,7 +5,7 @@ import Input from "@/src/components/common/Input/Input";
 import Button from "@/src/components/common/Button";
 import {COLORS} from "@/src/styles/colors";
 // @ts-ignore
-import logo from "@/assets/funfood-logo/logo5.png";
+import logo from "@/assets/sen-logo/logo5.png";
 
 const RegisterScreen = ({navigation}: any) => {
   const [formData, setFormData] = useState({

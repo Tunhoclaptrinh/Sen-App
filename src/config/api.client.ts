@@ -20,22 +20,24 @@ class ApiClient {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      console.log(`[API Req] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
       return config;
     });
 
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        // DEBUG: Log response data để xem cấu trúc
-        // console.log("API Response:", response.data);
+        console.log(`[API Res] ${response.status} ${response.config.url}`);
         return response.data;
       },
       async (error: AxiosError) => {
-        console.error("API Error:", error.response?.data || error.message);
+        console.error(`[API Err] ${error.config?.baseURL}${error.config?.url}`, error.message);
+        if (error.response) {
+            console.error("Status:", error.response.status, "Data:", error.response.data);
+        }
         if (error.response?.status === 401) {
           // Token expired or invalid
           await StorageService.removeToken();
-          // Trigger logout
         }
         return Promise.reject(error);
       }
@@ -60,6 +62,10 @@ class ApiClient {
 
   delete<T>(url: string) {
     return this.client.delete<T>(url);
+  }
+
+  setBaseUrl(url: string) {
+    this.client.defaults.baseURL = url;
   }
 }
 

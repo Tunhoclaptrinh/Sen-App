@@ -1,10 +1,12 @@
 import React, {useState} from "react";
 import {View, ScrollView, TouchableOpacity, Alert, Image, Text} from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/src/store";
+import { updateUser } from "@/src/store/slices/authSlice";
+
 import SafeAreaView from "@/src/components/common/SafeAreaView";
 import {Ionicons} from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import {useAuth} from "@hooks/useAuth";
-import {useAuthStore} from "@stores/authStore";
 import {apiClient} from "@config/api.client";
 import {API_CONFIG} from "@config/api.config";
 import Input from "@/src/components/common/Input/Input";
@@ -14,7 +16,8 @@ import styles from "./styles";
 import {getImageUrl} from "@/src/utils/formatters";
 
 const EditProfileScreen = ({navigation}: any) => {
-  const {user, token, refreshUser} = useAuth();
+  const dispatch = useDispatch<any>();
+  const { user, token } = useSelector((state: RootState) => state.auth);
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -84,12 +87,13 @@ const EditProfileScreen = ({navigation}: any) => {
       const textRes = await apiClient.put<any>("/users/profile", updateData);
 
       // Kiểm tra kỹ cấu trúc response
-      if (textRes.data && textRes.data.success) {
-        // Backend trả về user nằm trong data.data
-        if (textRes.data.data) {
+      if (textRes.success && textRes.data) { // Updated to match newer API response structure if possible, kept safe check
+          updatedUser = {...updatedUser, ...textRes.data};
+      } else if (textRes.data && textRes.data.success && textRes.data.data) {
+          // Legacy nested data support if needed
           updatedUser = {...updatedUser, ...textRes.data.data};
-        }
       }
+
 
       // 2. Upload Avatar (Logic đã fix lỗi Network request failed)
       const isNewImage = formData.avatar && !formData.avatar.startsWith("http") && !formData.avatar.startsWith("/"); // Nếu bắt đầu bằng / thì là ảnh cũ từ server
@@ -122,6 +126,10 @@ const EditProfileScreen = ({navigation}: any) => {
 
         if (uploadJson.success && uploadJson.data?.user) {
           updatedUser = uploadJson.data.user;
+        } else if (uploadJson.success && uploadJson.data) {
+             // Handle case where data IS the user or contains url
+             // Assuming uploadJson.data could have avatar url update
+             if (uploadJson.data.avatar) updatedUser.avatar = uploadJson.data.avatar;
         } else {
           console.log("Upload failed response:", uploadJson);
           // Không throw lỗi ở đây để vẫn giữ các thông tin text đã update thành công
@@ -130,14 +138,9 @@ const EditProfileScreen = ({navigation}: any) => {
       }
 
       // 3. Cập nhật Store
-      const {setUser: setStoreUser} = useAuthStore.getState();
-      if (token && updatedUser) {
-        await setStoreUser(updatedUser as any, token);
+      if (updatedUser) {
+        await dispatch(updateUser(updatedUser as any)); 
       }
-
-      // Refresh ngầm (nếu có function này được truyền vào từ context)
-      // @ts-ignore
-      if (typeof refreshUser === "function") refreshUser();
 
       Alert.alert("Thành công", "Cập nhật hồ sơ thành công", [{text: "OK", onPress: () => navigation.goBack()}]);
     } catch (error: any) {

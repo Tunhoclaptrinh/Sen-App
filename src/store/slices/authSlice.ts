@@ -76,6 +76,18 @@ export const initializeAuth = createAsyncThunk("auth/initialize", async () => {
   }
 });
 
+export const updateUser = createAsyncThunk(
+  "auth/updateUser",
+  async (user: User, { rejectWithValue }) => {
+    try {
+      await StorageService.setUser(user);
+      return user;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -106,6 +118,10 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
+      })
+      // Update User
+      .addCase(updateUser.fulfilled, (state, action) => {
+        state.user = action.payload;
       })
       // Initialize
       .addCase(initializeAuth.fulfilled, (state, action) => {

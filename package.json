@@ -1,5 +1,5 @@
 {
-  "name": "funfood-mobile",
+  "name": "sen-mobile",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -20,6 +20,7 @@
     "axios": "^1.13.2",
     "date-fns": "^4.1.0",
     "expo": "~54.0.27",
+    "expo-build-properties": "^1.0.10",
     "expo-clipboard": "~8.0.8",
     "expo-image-picker": "~17.0.9",
     "expo-linear-gradient": "~15.0.8",
