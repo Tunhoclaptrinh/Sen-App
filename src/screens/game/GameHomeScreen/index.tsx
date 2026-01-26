@@ -48,8 +48,7 @@ const GameHomeScreen = ({ navigation }: any) => {
       activeOpacity={0.9}
       onPress={() => {
           // Navigate to levels
-          // navigation.navigate('LevelList', { chapterId: chapter.id });
-          Alert.alert("Coming soon", "Levels for " + chapter.title);
+          navigation.navigate('Levels', { chapterId: chapter.id, chapterTitle: chapter.title });
       }}
     >
       <View style={styles.cardContent}>

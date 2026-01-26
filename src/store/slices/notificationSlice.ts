@@ -20,8 +20,10 @@ export const fetchNotifications = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await NotificationService.getNotifications({ limit: 50 });
+      console.log("NOTIFICATIONS RESPONSE:", JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error: any) {
+      console.error("NOTIFICATIONS ERROR:", error);
       return rejectWithValue(error.message);
     }
   }

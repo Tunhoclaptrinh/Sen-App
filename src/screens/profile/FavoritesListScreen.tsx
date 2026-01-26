@@ -1,17 +1,100 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, {useState, useEffect} from "react";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Image } from "react-native";
 import SafeAreaView from "@/src/components/common/SafeAreaView";
 import { COLORS } from "@/src/styles/colors";
 import EmptyState from "@/src/components/common/EmptyState/EmptyState";
+import { FavoriteService } from "@/src/services/favorite.service";
+import { Favorite } from "@/src/types";
+import { Ionicons } from "@expo/vector-icons";
+import { getImageUrl } from "@/src/utils/formatters";
 
-const FavoritesListScreen = () => {
+const FavoritesListScreen = ({navigation}: any) => {
+  const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    try {
+      setLoading(true);
+      // Fetch heritage sites and artifacts logic could be expanded here.
+      // For now, let's assume we want all favorites or a specific type.
+      // Since the UI implies a mixed list or we might want tabs, let's try getting all.
+      // However service has separate methods or generic getAll.
+      const res = await FavoriteService.getAllFavorites();
+      if (res && res.data) {
+          setFavorites(res.data);
+      }
+    } catch (error) {
+      console.error("Error loading favorites:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderItem = ({ item }: { item: Favorite }) => {
+     // Safeguard for missing item data
+     const title = item.item?.name || item.item?.title || "Unknown Item";
+     const image = item.item?.thumbnail || item.item?.image;
+     const typeLabel = item.type === 'heritage' ? 'Di sản' : item.type === 'artifact' ? 'Hiện vật' : 'Khác';
+
+     return (
+        <TouchableOpacity 
+            style={styles.card}
+            onPress={() => {
+                if (item.type === 'heritage') {
+                    navigation.navigate("HeritageDetail", {id: item.referenceId});
+                } else if (item.type === 'artifact') {
+                    navigation.navigate("ArtifactDetail", {artifact: item.item});
+                }
+            }}
+        >
+            <Image 
+                source={{uri: getImageUrl(image)}} 
+                style={styles.cardImage} 
+                resizeMode="cover"
+            />
+            <View style={styles.cardContent}>
+                <View style={styles.typeTag}>
+                    <Text style={styles.typeText}>{typeLabel}</Text>
+                </View>
+                <Text style={styles.cardTitle} numberOfLines={2}>{title}</Text>
+                <Text style={styles.dateText}>Đã thêm: {new Date(item.createdAt).toLocaleDateString('vi-VN')}</Text>
+            </View>
+            <TouchableOpacity style={styles.removeBtn}>
+                <Ionicons name="heart" size={20} color={COLORS.PRIMARY} />
+            </TouchableOpacity>
+        </TouchableOpacity>
+     );
+  };
+
+  if (loading) {
+      return (
+          <SafeAreaView style={styles.centered}>
+              <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+          </SafeAreaView>
+      );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <EmptyState
-        icon="heart-outline"
-        title="Yêu thích"
-        subtitle="Danh sách di sản và bài viết yêu thích của bạn đang trống."
-      />
+      {favorites.length === 0 ? (
+        <EmptyState
+          icon="heart-outline"
+          title="Chưa có yêu thích"
+          subtitle="Danh sách di sản và hiện vật yêu thích của bạn đang trống."
+        />
+      ) : (
+          <FlatList
+            data={favorites}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+      )}
     </SafeAreaView>
   );
 };
@@ -19,8 +102,62 @@ const FavoritesListScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.LIGHT_GRAY,
+    backgroundColor: "#F8F9FA",
   },
+  centered: {
+      flex: 1, justifyContent: 'center', alignItems: 'center'
+  },
+  listContent: {
+      padding: 16,
+  },
+  card: {
+      flexDirection: 'row',
+      backgroundColor: COLORS.WHITE,
+      borderRadius: 12,
+      marginBottom: 16,
+      overflow: 'hidden',
+      elevation: 2,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+  },
+  cardImage: {
+      width: 100,
+      height: 100,
+  },
+  cardContent: {
+      flex: 1,
+      padding: 12,
+      justifyContent: 'center'
+  },
+  cardTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: COLORS.DARK,
+      marginBottom: 4,
+  },
+  dateText: {
+      fontSize: 12,
+      color: COLORS.GRAY,
+  },
+  typeTag: {
+      backgroundColor: '#E3F2FD',
+      alignSelf: 'flex-start',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      marginBottom: 6,
+  },
+  typeText: {
+      fontSize: 10,
+      color: '#1976D2',
+      fontWeight: '600'
+  },
+  removeBtn: {
+      padding: 12,
+      justifyContent: 'center'
+  }
 });
 
 export default FavoritesListScreen;

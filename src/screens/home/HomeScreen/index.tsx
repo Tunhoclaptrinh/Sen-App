@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   StatusBar,
+  ScrollView,
+  Dimensions,
 } from "react-native";
 import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "@/src/store";
@@ -21,12 +23,26 @@ import SearchBar from "@/src/components/common/SearchBar";
 import EmptyState from "@/src/components/common/EmptyState/EmptyState";
 import { HeritageSite } from "@/src/types/heritage.types";
 import { ROUTE_NAMES } from "@/src/config/routes.config";
+import { useAuth } from "@/src/hooks/useAuth";
+import { LinearGradient } from "expo-linear-gradient";
+
+const { width } = Dimensions.get("window");
+
+const CATEGORIES = [
+  { id: 'all', name: 'Tất cả', icon: 'grid-outline' },
+  { id: 'Di tích', name: 'Di tích', icon: 'business-outline' },
+  { id: 'Cổ vật', name: 'Cổ vật', icon: 'cube-outline' },
+  { id: 'Lễ hội', name: 'Lễ hội', icon: 'flag-outline' },
+  { id: 'Bảo tàng', name: 'Bảo tàng', icon: 'library-outline' },
+];
 
 const HomeScreen = ({navigation}: any) => {
   const dispatch = useDispatch<any>();
+  const {user} = useAuth();
   const {items, loading, error} = useSelector((state: RootState) => state.heritage);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     loadData();
@@ -48,14 +64,55 @@ const HomeScreen = ({navigation}: any) => {
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    // Implement search logic here or in slice
   };
 
-  const filteredItems = items.filter((site) =>
-    site.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter items
+  const filteredItems = items.filter((site) => {
+    const matchesSearch = site.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || site.category?.includes(selectedCategory);
+    return matchesSearch && matchesCategory;
+  });
+
+  // Featured items (Mock logic: first 3 items or those with images)
+  const featuredItems = items.slice(0, 5);
+
+  const renderCategoryItem = ({item}: any) => (
+      <TouchableOpacity 
+        style={[styles.categoryItem, selectedCategory === item.id && styles.categoryItemActive]}
+        onPress={() => setSelectedCategory(item.id)}
+      >
+          <View style={[styles.categoryIcon, selectedCategory === item.id && styles.categoryIconActive]}>
+             <Ionicons name={item.icon} size={20} color={selectedCategory === item.id ? COLORS.WHITE : COLORS.PRIMARY} />
+          </View>
+          <Text style={[styles.categoryText, selectedCategory === item.id && styles.categoryTextActive]}>{item.name}</Text>
+      </TouchableOpacity>
   );
 
-  const renderItem = ({item}: {item: HeritageSite}) => (
+  const renderFeaturedItem = ({item}: {item: HeritageSite}) => (
+    <TouchableOpacity
+      style={styles.featuredCard}
+      activeOpacity={0.9}
+      onPress={() => navigation.navigate(ROUTE_NAMES.HOME.HERITAGE_DETAIL, {id: item.id})}
+    >
+      <Image 
+        source={{uri: getImageUrl(item.imageUrl)}} 
+        style={styles.featuredImage} 
+        resizeMode="cover"
+      />
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.8)']}
+        style={styles.featuredGradient}
+      >
+          <Text style={styles.featuredTitle} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.featuredLocation}>
+             <Ionicons name="location" size={12} color={COLORS.WHITE} />
+             <Text style={styles.featuredLocationText} numberOfLines={1}>{item.location}</Text>
+          </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+
+  const renderRecommendationItem = ({item}: {item: HeritageSite}) => (
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.9}
@@ -70,19 +127,23 @@ const HomeScreen = ({navigation}: any) => {
              </View>
         )}
         <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{item.category || "Di tích"}</Text>
+            <Text style={styles.categoryBadgeText}>{item.category || "Di tích"}</Text>
         </View>
       </View>
 
       <View style={styles.cardContent}>
-        <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
+        <View style={styles.cardHeader}>
+            <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
+            <View style={styles.ratingBadge}>
+                <Ionicons name="star" size={12} color="#FFD700" />
+                <Text style={styles.ratingText}>{item.rating || 4.5}</Text>
+            </View>
+        </View>
+        
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color={COLORS.GRAY} />
           <Text style={styles.locationText} numberOfLines={1}>{item.location}</Text>
         </View>
-        <Text style={styles.description} numberOfLines={2}>
-          {item.description}
-        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -94,14 +155,15 @@ const HomeScreen = ({navigation}: any) => {
       {/* Header */}
       <View style={styles.header}>
         <View>
+            <Text style={styles.greeting}>Xin chào, {user?.fullName?.split(" ").pop() || "Bạn"}</Text>
             <Text style={styles.headerTitle}>Khám Phá Di Sản</Text>
-            <Text style={styles.headerSubtitle}>Tìm hiểu văn hóa & lịch sử Việt Nam</Text>
         </View>
          <TouchableOpacity 
             style={styles.iconBtn}
             onPress={() => navigation.navigate(ROUTE_NAMES.COMMON.NOTIFICATIONS)}
          >
             <Ionicons name="notifications-outline" size={24} color={COLORS.PRIMARY} />
+            <View style={styles.badge} />
          </TouchableOpacity>
       </View>
 
@@ -113,28 +175,76 @@ const HomeScreen = ({navigation}: any) => {
         />
       </View>
 
-      {loading && !refreshing && items.length === 0 ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
+      <ScrollView 
+         showsVerticalScrollIndicator={false}
+         refreshControl={
             <RefreshControl refreshing={loading || refreshing} onRefresh={onRefresh} colors={[COLORS.PRIMARY]} />
-          }
-          ListEmptyComponent={
-            <EmptyState 
-                icon="search" 
-                title="Không tìm thấy di sản" 
-                subtitle="Thử tìm kiếm với từ khóa khác" 
-            />
-          }
-        />
-      )}
+         }
+         contentContainerStyle={{paddingBottom: 20}}
+      >
+          {/* Categories */}
+          <View style={styles.sectionHeader}>
+             <FlatList 
+                data={CATEGORIES}
+                renderItem={renderCategoryItem}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryList}
+             />
+          </View>
+
+          {loading && !refreshing && items.length === 0 ? (
+             <View style={styles.center}>
+               <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+             </View>
+          ) : (
+             <>
+                 {/* Featured Section */}
+                 {searchQuery === "" && selectedCategory === 'all' && (
+                     <View style={styles.section}>
+                        <View style={styles.sectionTitleRow}>
+                            <Text style={styles.sectionTitle}>Nổi bật</Text>
+                            <TouchableOpacity><Text style={styles.seeAllText}>Xem tất cả</Text></TouchableOpacity>
+                        </View>
+                        <FlatList 
+                            data={featuredItems}
+                            renderItem={renderFeaturedItem}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.featuredList}
+                            snapToInterval={width * 0.75 + 16}
+                            decelerationRate="fast"
+                        />
+                     </View>
+                 )}
+
+                 {/* Recommendations / Main List */}
+                 <View style={styles.section}>
+                    <View style={styles.sectionTitleRow}>
+                        <Text style={styles.sectionTitle}>
+                            {searchQuery ? "Kết quả tìm kiếm" : "Gợi ý cho bạn"}
+                        </Text>
+                    </View>
+                    
+                    {filteredItems.length === 0 ? (
+                        <EmptyState 
+                            icon="search" 
+                            title="Không tìm thấy di sản" 
+                            subtitle="Thử tìm kiếm với từ khóa khác" 
+                        />
+                    ) : (
+                        <View style={styles.listContent}>
+                           {filteredItems.map(item => (
+                               <View key={item.id} style={{marginBottom: 16}}>
+                                   {renderRecommendationItem({item})}
+                               </View>
+                           ))}
+                        </View>
+                    )}
+                 </View>
+             </>
+          )}
+      </ScrollView>
     </View>
   );
 };
@@ -153,15 +263,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  greeting: {
+      fontSize: 14, color: COLORS.GRAY, marginBottom: 2
+  },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
     color: COLORS.DARK,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.GRAY,
-    marginTop: 4,
   },
   iconBtn: {
       width: 40,
@@ -170,6 +278,10 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       borderRadius: 20,
       backgroundColor: '#FFF0F0',
+      position: 'relative',
+  },
+  badge: {
+      position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: 'red', borderWidth: 1, borderColor: '#FFF'
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -179,28 +291,100 @@ const styles = StyleSheet.create({
     borderBottomColor: "#F0F0F0",
   },
   center: {
-    flex: 1,
-    justifyContent: "center",
+    padding: 20,
     alignItems: "center",
   },
+  
+  // Categories
+  categoryList: {
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      gap: 12,
+  },
+  categoryItem: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: COLORS.WHITE, paddingHorizontal: 12, paddingVertical: 8,
+      borderRadius: 20, borderWidth: 1, borderColor: '#F0F0F0',
+      gap: 6,
+  },
+  categoryItemActive: {
+      backgroundColor: COLORS.PRIMARY, borderColor: COLORS.PRIMARY,
+  },
+  categoryIcon: {
+      width: 28, height: 28, borderRadius: 14, backgroundColor: '#F5F5F5',
+      justifyContent: 'center', alignItems: 'center',
+  },
+  categoryIconActive: {
+      backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  categoryText: {
+      fontSize: 13, fontWeight: '600', color: COLORS.DARK,
+  },
+  categoryTextActive: {
+      color: COLORS.WHITE,
+  },
+
+  // Sections
+  section: {
+      marginBottom: 24,
+  },
+  sectionHeader: {
+      // backgroundColor: COLORS.WHITE,
+  },
+  sectionTitleRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingHorizontal: 20, marginBottom: 12,
+  },
+  sectionTitle: {
+      fontSize: 18, fontWeight: '700', color: COLORS.DARK,
+  },
+  seeAllText: {
+      fontSize: 13, color: COLORS.PRIMARY, fontWeight: '600',
+  },
+
+  // Featured
+  featuredList: {
+      paddingHorizontal: 20, gap: 16, paddingRight: 20,
+  },
+  featuredCard: {
+      width: width * 0.75, height: 180, borderRadius: 16, overflow: 'hidden',
+      backgroundColor: COLORS.GRAY, position: 'relative',
+  },
+  featuredImage: {
+      width: '100%', height: '100%',
+  },
+  featuredGradient: {
+      position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
+      justifyContent: 'flex-end', padding: 16,
+  },
+  featuredTitle: {
+      color: COLORS.WHITE, fontSize: 16, fontWeight: 'bold', marginBottom: 4,
+  },
+  featuredLocation: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+  },
+  featuredLocationText: {
+      color: 'rgba(255,255,255,0.9)', fontSize: 12,
+  },
+
+  // Recommendations / List
   listContent: {
-    padding: 20,
-    paddingBottom: 100, // Space for tab bar
+      paddingHorizontal: 20,
   },
   card: {
     backgroundColor: COLORS.WHITE,
     borderRadius: 16,
-    marginBottom: 20,
+    marginBottom: 0, // Handled by list container
     shadowColor: "#000",
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
     overflow: 'hidden',
   },
   imageContainer: {
-      height: 180,
-      backgroundColor: '#EEE',
+      height: 160,
+      backgroundColor: '#F5F5F5',
       position: 'relative',
   },
   image: {
@@ -213,42 +397,47 @@ const styles = StyleSheet.create({
   },
   categoryBadge: {
       position: 'absolute',
-      top: 12,
-      left: 12,
-      backgroundColor: 'rgba(0,0,0,0.6)',
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 8,
+      top: 10,
+      left: 10,
+      backgroundColor: 'rgba(255,255,255,0.9)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
   },
-  categoryText: {
-      color: COLORS.WHITE,
-      fontSize: 12,
-      fontWeight: '600',
+  categoryBadgeText: {
+      color: COLORS.DARK,
+      fontSize: 11,
+      fontWeight: '700',
   },
   cardContent: {
-      padding: 16,
+      padding: 12,
+  },
+  cardHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+      marginBottom: 6,
+  },
+  ratingBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 3, 
+      backgroundColor: '#FFF9C4', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+  },
+  ratingText: {
+      fontSize: 11, fontWeight: '700', color: COLORS.DARK,
   },
   title: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '700',
       color: COLORS.DARK,
-      marginBottom: 6,
+      flex: 1, marginRight: 8,
   },
   locationRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 8,
   },
   locationText: {
-      fontSize: 13,
+      fontSize: 12,
       color: COLORS.GRAY,
       marginLeft: 4,
       flex: 1,
-  },
-  description: {
-      fontSize: 14,
-      color: COLORS.DARK_GRAY,
-      lineHeight: 20,
   },
 });
 

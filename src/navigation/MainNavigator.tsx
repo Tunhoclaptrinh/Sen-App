@@ -10,12 +10,21 @@ import {COLORS} from "@/src/styles/colors";
 // Screens
 import HomeScreen from "@/src/screens/home/HomeScreen";
 import HeritageDetailScreen from "@screens/heritage/HeritageDetailScreen";
+import ArtifactDetailScreen from "@screens/heritage/ArtifactDetailScreen";
 import ProfileScreen from "@screens/profile/ProfileScreen";
 import EditProfileScreen from "@screens/profile/EditProfileScreen";
 import SettingsScreen from "../screens/profile/SettingsScreen";
 import NotificationsScreen from "../screens/notifications/NotificationsScreen";
 import DiscoveryScreen from "@/src/screens/discovery/DiscoveryScreen";
 import StudyScreen from "@/src/screens/study/StudyScreen";
+import FavoritesListScreen from "../screens/profile/FavoritesListScreen";
+import ChangePasswordScreen from "../screens/profile/ChangePasswordScreen";
+import TermsPrivacyScreen from "../screens/profile/TermsPrivacyScreen";
+import SupportScreen from "../screens/profile/SupportScreen";
+import NotificationSettingsScreen from "../screens/profile/NotificationSettingsScreen";
+import FaqMissingFoodScreen from "../screens/profile/faqScreen/FaqMissingFoodScreen";
+import FaqPaymentIssueScreen from "../screens/profile/faqScreen/FaqPaymentIssueScreen";
+import FaqCancelOrderScreen from "../screens/profile/faqScreen/FaqCancelOrderScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -62,6 +71,11 @@ const HomeStack = () => (
       component={HeritageDetailScreen}
       options={({navigation}: any) => CustomBackHeader(navigation, "Chi tiết di sản")}
     />
+    <Stack.Screen
+      name={ROUTE_NAMES.HOME.ARTIFACT_DETAIL}
+      component={ArtifactDetailScreen}
+      options={{headerShown: false}}
+    />
      <Stack.Screen
       name={ROUTE_NAMES.COMMON.NOTIFICATIONS}
       component={NotificationsScreen}
@@ -83,7 +97,7 @@ const ProfileStack = () => (
     <Stack.Screen
       name={ROUTE_NAMES.PROFILE.SCREEN}
       component={ProfileScreen}
-      options={{title: "Hồ sơ", headerBackVisible: false}}
+      options={{headerShown: false}}
     />
     <Stack.Screen
       name={ROUTE_NAMES.PROFILE.EDIT_PROFILE}
@@ -94,6 +108,52 @@ const ProfileStack = () => (
       name={ROUTE_NAMES.COMMON.SETTINGS}
       component={SettingsScreen}
       options={({navigation}: any) => CustomBackHeader(navigation, "Cài đặt")}
+    />
+     <Stack.Screen
+      name={ROUTE_NAMES.COMMON.NOTIFICATIONS}
+      component={NotificationsScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Thông báo")}
+    />
+    <Stack.Screen
+      name="FavoritesList"
+      component={FavoritesListScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Yêu thích")}
+    />
+    <Stack.Screen
+      name="ChangePassword"
+      component={ChangePasswordScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Đổi mật khẩu")}
+    />
+    <Stack.Screen
+      name="TermsPrivacy"
+      component={TermsPrivacyScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Điều khoản & Chính sách")}
+    />
+    <Stack.Screen
+      name="Support"
+      component={SupportScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Hỗ trợ")}
+    />
+     <Stack.Screen
+      name="NotificationSettings"
+      component={NotificationSettingsScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Cài đặt thông báo")}
+    />
+    {/* FAQ Screens */}
+    <Stack.Screen
+      name="FaqMissingFood"
+      component={FaqMissingFoodScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Thiếu món")}
+    />
+    <Stack.Screen
+      name="FaqPaymentIssue"
+      component={FaqPaymentIssueScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Lỗi thanh toán")}
+    />
+     <Stack.Screen
+      name="FaqCancelOrder"
+      component={FaqCancelOrderScreen}
+      options={({navigation}: any) => CustomBackHeader(navigation, "Hủy đơn")}
     />
   </Stack.Navigator>
 );
@@ -130,10 +190,9 @@ const StudyStack = () => (
 /* ==============================
    GAME STACK
    ==============================*/
-/* ==============================
-   GAME STACK
-   ==============================*/
 import GameHomeScreen from "@/src/screens/game/GameHomeScreen";
+import LevelsScreen from "@/src/screens/game/LevelsScreen";
+import GamePlayScreen from "@/src/screens/game/GamePlayPage";
 import AIChatScreen from "@/src/screens/ai/AIChatScreen";
 
 const GameStack = () => (
@@ -141,6 +200,16 @@ const GameStack = () => (
     <Stack.Screen
       name="GameHomeScreen"
       component={GameHomeScreen}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name="Levels"
+      component={LevelsScreen}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name="GamePlay"
+      component={GamePlayScreen}
       options={{headerShown: false}}
     />
   </Stack.Navigator>

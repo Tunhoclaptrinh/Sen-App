@@ -1,10 +1,14 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { GameService } from "../../services/game.service";
-import { GameProgress, Chapter } from "../../types/game.types";
+import { GameProgress, Chapter, Level } from "../../types/game.types";
 
 interface GameState {
   progress: GameProgress | null;
   chapters: Chapter[];
+  levels: Level[];
+  currentLevel: any | null;
+  currentSession: any | null; 
+  currentScreen: any | null; 
   loading: boolean;
   error: string | null;
 }
@@ -12,6 +16,10 @@ interface GameState {
 const initialState: GameState = {
   progress: null,
   chapters: [],
+  levels: [],
+  currentLevel: null,
+  currentSession: null,
+  currentScreen: null,
   loading: false,
   error: null,
 };
@@ -22,7 +30,7 @@ export const fetchGameProgress = createAsyncThunk(
     try {
       const response = await GameService.getProgress();
       if (response && response.data) {
-        return response.data;
+        return response.data; // Return the data payload
       }
       return null;
     } catch (error: any) {
@@ -36,20 +44,80 @@ export const fetchChapters = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await GameService.getChapters();
-      if (response && response.data) {
-        return response.data as Chapter[]; // explicit cast to avoid inference issues
+      // Ensure we extract the array from response.data
+      if (response && response.data && Array.isArray(response.data)) {
+        return response.data;
+      } else if (response && Array.isArray(response)) {
+          // Fallback if direct array
+          return response;
       }
-      return [] as Chapter[];
+      return [];
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+export const fetchLevels = createAsyncThunk(
+  "game/fetchLevels",
+  async (chapterId: number | string, { rejectWithValue }) => {
+    try {
+      const response = await GameService.getLevels(chapterId);
+      if (response && response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+       else if (response && Array.isArray(response)) {
+          return response;
+      }
+      return [];
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchLevelDetail = createAsyncThunk(
+    "game/fetchLevelDetail",
+    async (levelId: number | string, { rejectWithValue }) => {
+        try {
+            const response = await GameService.getLevelDetail(levelId);
+            if(response && response.data) return response.data;
+            return null;
+        } catch (error: any) {
+             return rejectWithValue(error.message);
+        }
+    }
+);
+
+export const startLevelSession = createAsyncThunk(
+    "game/startSession",
+    async (levelId: number | string, { rejectWithValue }) => {
+        try {
+             // startLevel returns: BaseApiResponse<{ session_id, level, current_screen }>
+            const response = await GameService.startLevel(levelId);
+             if(response && response.success && response.data) return response.data;
+             return rejectWithValue(response?.message || "Failed to start level");
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const gameSlice = createSlice({
   name: "game",
   initialState,
-  reducers: {},
+  reducers: {
+      updateCurrentScreen: (state, action) => {
+          state.currentScreen = action.payload;
+      },
+      updateSessionScore: (state, action) => {
+        // Optional score update logic
+      },
+      resetSession: (state) => {
+          state.currentSession = null;
+          state.currentScreen = null;
+      }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchGameProgress.pending, (state) => {
@@ -57,6 +125,7 @@ const gameSlice = createSlice({
       })
       .addCase(fetchGameProgress.fulfilled, (state, action) => {
         state.loading = false;
+        // payload is GameProgress
         state.progress = action.payload;
       })
       .addCase(fetchGameProgress.rejected, (state, action) => {
@@ -64,10 +133,45 @@ const gameSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(fetchChapters.fulfilled, (state, action) => {
-        state.chapters = action.payload;
+        // payload is Chapter[]
+        state.chapters = action.payload as any; 
+      })
+      .addCase(fetchLevels.pending, (state) => {
+          state.loading = true;
+      })
+      .addCase(fetchLevels.fulfilled, (state, action) => {
+          state.loading = false;
+           // payload is Level[]
+          state.levels = action.payload as any;
+      })
+      .addCase(fetchLevels.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+      })
+      .addCase(fetchLevelDetail.fulfilled, (state, action) => {
+          state.currentLevel = action.payload;
+      })
+      .addCase(startLevelSession.pending, (state) => {
+          state.loading = true;
+          state.error = null;
+      })
+      .addCase(startLevelSession.fulfilled, (state, action) => {
+          state.loading = false;
+          const data = action.payload; 
+          // data: { session_id, level, current_screen }
+          state.currentSession = { 
+              id: data.session_id,
+              level: data.level
+          };
+          state.currentScreen = data.current_screen;
+      })
+      .addCase(startLevelSession.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
       });
   },
 });
 
+export const { updateCurrentScreen, resetSession } = gameSlice.actions;
 export default gameSlice.reducer;
 

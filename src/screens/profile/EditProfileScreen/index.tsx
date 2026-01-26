@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {View, ScrollView, TouchableOpacity, Alert, Image, Text} from "react-native";
+import {View, ScrollView, TouchableOpacity, Alert, Image, Text, TextInput} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/src/store";
 import { updateUser } from "@/src/store/slices/authSlice";
@@ -23,6 +23,8 @@ const EditProfileScreen = ({navigation}: any) => {
   const [formData, setFormData] = useState({
     fullName: user?.fullName || "",
     avatar: user?.avatar || "",
+    phone: user?.phone || "",
+    bio: user?.bio || "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,6 +32,9 @@ const EditProfileScreen = ({navigation}: any) => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.fullName.trim()) newErrors.fullName = "Tên là bắt buộc";
+    if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone)) {
+        newErrors.phone = "Số điện thoại không hợp lệ";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -65,7 +70,6 @@ const EditProfileScreen = ({navigation}: any) => {
     ]);
   };
 
-  // --- HÀM SAVE ĐÃ SỬA LỖI ---
   const handleSave = async () => {
     if (!validateForm()) return;
 
@@ -76,19 +80,18 @@ const EditProfileScreen = ({navigation}: any) => {
       // 1. Cập nhật thông tin văn bản
       const updateData = {
         fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        bio: formData.bio.trim(),
       };
 
-      // ✅ SỬA LỖI: Thêm <any> để TypeScript không báo lỗi thiếu property 'data'
       const textRes = await apiClient.put<any>("/users/profile", updateData);
 
-      // Kiểm tra kỹ cấu trúc response
       if (textRes.data && textRes.data.success) { 
           updatedUser = {...updatedUser, ...textRes.data.data};
       } 
 
-
-      // 2. Upload Avatar (Logic đã fix lỗi Network request failed)
-      const isNewImage = formData.avatar && !formData.avatar.startsWith("http") && !formData.avatar.startsWith("/"); // Nếu bắt đầu bằng / thì là ảnh cũ từ server
+      // 2. Upload Avatar
+      const isNewImage = formData.avatar && !formData.avatar.startsWith("http") && !formData.avatar.startsWith("/"); 
 
       if (isNewImage) {
         const uploadData = new FormData();
@@ -102,14 +105,11 @@ const EditProfileScreen = ({navigation}: any) => {
           type: `image/${fileType === "png" ? "png" : "jpeg"}`,
         });
 
-        console.log("Uploading avatar:", formData.avatar);
-
         // Dùng fetch để tránh lỗi boundary của axios
         const uploadRes = await fetch(`${API_CONFIG.BASE_URL}/upload/avatar`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
-            // Không set Content-Type để fetch tự động thêm boundary
           },
           body: uploadData,
         });
@@ -119,18 +119,15 @@ const EditProfileScreen = ({navigation}: any) => {
         if (uploadJson.success && uploadJson.data?.user) {
           updatedUser = uploadJson.data.user;
         } else if (uploadJson.success && uploadJson.data) {
-             // Handle case where data IS the user or contains url
-             // Assuming uploadJson.data could have avatar url update
              if (uploadJson.data.avatar) updatedUser.avatar = uploadJson.data.avatar;
-        } else {
-          console.log("Upload failed response:", uploadJson);
-          // Không throw lỗi ở đây để vẫn giữ các thông tin text đã update thành công
-          // throw new Error(uploadJson.message || "Upload ảnh thất bại");
         }
       }
 
       // 3. Cập nhật Store
       if (updatedUser) {
+        // Ensure new fields are in the user object before dispatching
+        updatedUser.phone = formData.phone;
+        updatedUser.bio = formData.bio;
         await dispatch(updateUser(updatedUser as any)); 
       }
 
@@ -146,7 +143,9 @@ const EditProfileScreen = ({navigation}: any) => {
   const hasChanges = () => {
     return (
       formData.fullName !== user?.fullName ||
-      formData.avatar !== user?.avatar
+      formData.avatar !== user?.avatar ||
+      formData.phone !== (user?.phone || "") ||
+      formData.bio !== (user?.bio || "")
     );
   };
 
@@ -155,7 +154,6 @@ const EditProfileScreen = ({navigation}: any) => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.avatarSection}>
           <TouchableOpacity style={styles.avatarContainer} onPress={handleAvatarPress}>
-            {/* Sử dụng getImageUrl để hiển thị đúng cả ảnh local và ảnh server */}
             {formData.avatar ? (
               <Image source={{uri: getImageUrl(formData.avatar)}} style={styles.avatar} />
             ) : (
@@ -195,6 +193,36 @@ const EditProfileScreen = ({navigation}: any) => {
               placeholder="Nhập họ tên của bạn"
               error={errors.fullName}
               containerStyle={styles.input}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <View style={styles.labelContainer}>
+              <Ionicons name="call-outline" size={20} color={COLORS.GRAY} />
+              <Text style={styles.label}>Số điện thoại</Text>
+            </View>
+            <Input
+              value={formData.phone}
+              onChangeText={(phone) => setFormData({...formData, phone})}
+              placeholder="Nhập số điện thoại"
+              error={errors.phone}
+              containerStyle={styles.input}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <View style={styles.labelContainer}>
+              <Ionicons name="information-circle-outline" size={20} color={COLORS.GRAY} />
+              <Text style={styles.label}>Giới thiệu</Text>
+            </View>
+            <TextInput
+              style={[styles.bioInput, styles.input, {height: 100, textAlignVertical: 'top', paddingTop: 10}]}
+              value={formData.bio}
+              onChangeText={(bio) => setFormData({...formData, bio})}
+              placeholder="Giới thiệu ngắn gọn về bạn..."
+              multiline
+              numberOfLines={4}
             />
           </View>
         </View>

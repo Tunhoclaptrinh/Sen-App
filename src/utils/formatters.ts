@@ -36,6 +36,8 @@ export const getImageUrl = (path?: string): string | undefined => {
 
   // Đảm bảo không bị duplicate dấu /
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-
-  return `${baseUrl}${cleanPath}`;
+  
+  const finalUrl = `${baseUrl}${cleanPath}`;
+  console.log(`[getImageUrl] Input: ${path} | Output: ${finalUrl}`);
+  return finalUrl;
 };

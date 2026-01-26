@@ -9,9 +9,11 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
+  Dimensions,
 } from "react-native";
 import SafeAreaView from "@/src/components/common/SafeAreaView";
 import {Ionicons} from "@expo/vector-icons";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 import {useAuth} from "@hooks/useAuth";
 import {apiClient} from "@config/api.client";
 import {LinearGradient} from "expo-linear-gradient";
@@ -21,61 +23,127 @@ import {ROUTE_NAMES} from "@/src/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/src/store";
 import { fetchNotifications, fetchUnreadCount } from "@/src/store/slices/notificationSlice";
+import { UserService } from "@/src/services/user.service";
 
 interface UserStats {
   totalReviews: number;
   avgRating: number;
   totalFavorites: number;
+  totalCollections?: number;
 }
+
+type TabType = 'profile' | 'activity' | 'security';
 
 const ProfileScreen = ({navigation}: any) => {
   const {user, signOut} = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('profile');
+  const [activities, setActivities] = useState<any[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
   
-  const dispatch = useDispatch<any>();
+  const dispatch = useDispatch();
   const { unreadCount } = useSelector((state: RootState) => state.notifications);
-
+  const insets = useSafeAreaInsets();
+  
   useEffect(() => {
-    loadUserStats();
-    dispatch(fetchNotifications());
-    dispatch(fetchUnreadCount());
+    loadData();
+    dispatch(fetchNotifications() as any);
+    dispatch(fetchUnreadCount() as any);
   }, []);
 
-  const loadUserStats = async () => {
+  const loadData = async () => {
     if (!user) return;
-
     try {
       setLoading(true);
-      const response = await apiClient.get<{data?: {stats?: UserStats}}>(`/users/${user.id}/activity`);
-      setStats(
-        response.data?.data?.stats ?? {
-          totalReviews: 0,
-          avgRating: 0,
-          totalFavorites: 0,
+      const res: any = await UserService.getActivity(user.id);
+      
+      if (res && res.success && res.data) {
+        const data = res.data;
+        
+        // 1. Set Stats
+        setStats({
+          totalReviews: data.totalReviews || 0,
+          avgRating: data.avgRating || 0,
+          totalFavorites: data.totalFavorites || 0,
+          totalCollections: data.totalCollections || 0
+        });
+
+        // 2. Process Activities
+        const newActivities: any[] = [];
+        
+        // Add Sessions
+        if (data.recentSessions) {
+            data.recentSessions.forEach((session: any) => {
+                newActivities.push({
+                    type: 'game',
+                    title: 'Chơi game',
+                    description: `Đã chơi màn ${session.level_id || 'Game'}`,
+                    createdAt: session.started_at
+                });
+            });
         }
-      );
+
+        // Add Scans
+        if (data.recentScans) {
+            data.recentScans.forEach((scan: any) => {
+                newActivities.push({
+                   type: 'scan',
+                   title: 'Quét di sản',
+                   description: 'Đã quét một di sản mới', // Backend should provide artifact name ideally
+                   createdAt: scan.scanned_at
+                });
+            });
+        }
+        
+        // Mock data if empty for demo purposes (as requested by user)
+        if (newActivities.length === 0) {
+            newActivities.push({
+                type: 'game',
+                title: 'Chiến thắng vẻ vang',
+                description: 'Đã hoàn thành xuất sắc màn chơi "Bạch Đằng Giang"',
+                createdAt: new Date().toISOString()
+            });
+            newActivities.push({
+                type: 'scan',
+                title: 'Khám phá di sản',
+                description: 'Đã quét thành công hiện vật "Trống Đồng Đông Sơn"',
+                createdAt: new Date(Date.now() - 86400000).toISOString()
+            });
+            newActivities.push({
+                type: 'game',
+                title: 'Thăng cấp', 
+                description: 'Chúc mừng! Bạn đã đạt danh hiệu "Nhà Sử Học Trẻ"',
+                createdAt: new Date(Date.now() - 172800000).toISOString()
+            });
+             newActivities.push({
+                type: 'login',
+                title: 'Đăng nhập lại', 
+                description: 'Chào mừng trở lại với SEN!',
+                createdAt: new Date(Date.now() - 259200000).toISOString()
+            });
+        }
+
+        // Sort by date desc
+        newActivities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setActivities(newActivities);
+      }
     } catch (error) {
-      console.error("Error loading stats:", error);
-      setStats({
-        totalReviews: 0,
-        avgRating: 0,
-        totalFavorites: 0,
-      });
+      console.error("Error loading profile data:", error);
     } finally {
       setLoading(false);
+      setActivityLoading(false);
     }
   };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadUserStats();
+    await loadData();
     setRefreshing(false);
   };
 
   const handleLogout = () => {
-    // Logout alert
     Alert.alert("Đăng xuất", "Bạn có chắc muốn đăng xuất không?", [
       {text: "Hủy", style: "cancel"},
       {
@@ -88,66 +156,194 @@ const ProfileScreen = ({navigation}: any) => {
     ]);
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(value);
+  const renderTabs = () => (
+      <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'profile' && styles.activeTabButton]}
+            onPress={() => setActiveTab('profile')}
+          >
+              <Ionicons name="person-outline" size={18} color={activeTab === 'profile' ? COLORS.PRIMARY : COLORS.GRAY} />
+              <Text style={[styles.tabText, activeTab === 'profile' && styles.activeTabText]}>Hồ sơ</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'activity' && styles.activeTabButton]}
+            onPress={() => setActiveTab('activity')}
+          >
+               <Ionicons name="time-outline" size={18} color={activeTab === 'activity' ? COLORS.PRIMARY : COLORS.GRAY} />
+              <Text style={[styles.tabText, activeTab === 'activity' && styles.activeTabText]}>Hoạt động</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'security' && styles.activeTabButton]}
+            onPress={() => setActiveTab('security')}
+          >
+               <Ionicons name="shield-checkmark-outline" size={18} color={activeTab === 'security' ? COLORS.PRIMARY : COLORS.GRAY} />
+              <Text style={[styles.tabText, activeTab === 'security' && styles.activeTabText]}>Bảo mật</Text>
+          </TouchableOpacity>
+      </View>
+  );
+
+  const renderProfileTab = () => (
+      <>
+         {/* Stats Grid */}
+        {stats && (
+          <View style={styles.statsGridSection}>
+            <TouchableOpacity
+              style={styles.statsCard}
+              onPress={() => navigation.navigate("FavoritesList")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.statsCardIcon, {backgroundColor: '#FFF0F5'}]}>
+                <Ionicons name="heart" size={24} color="#E91E63" />
+              </View>
+              <Text style={styles.statsCardValue}>{stats.totalFavorites}</Text>
+              <Text style={styles.statsCardLabel}>Đã yêu thích</Text>
+            </TouchableOpacity>
+
+             <TouchableOpacity
+              style={styles.statsCard}
+              activeOpacity={0.7}
+             >
+                <View style={[styles.statsCardIcon, {backgroundColor: '#E6F7FF'}]}>
+                  <Ionicons name="grid" size={24} color="#1890ff" />
+                </View>
+                <Text style={styles.statsCardValue}>{stats.totalCollections || 0}</Text>
+                <Text style={styles.statsCardLabel}>Bộ sưu tập</Text>
+             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Menu Items */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Cài đặt tài khoản</Text>
+          <View style={styles.menuContainer}>
+             <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("EditProfile")}>
+                 <View style={[styles.menuIcon, {backgroundColor: '#E8F5E9'}]}>
+                     <Ionicons name="person" size={20} color={COLORS.PRIMARY} />
+                 </View>
+                 <View style={styles.menuContent}>
+                     <Text style={styles.menuTitle}>Chỉnh sửa hồ sơ</Text>
+                     <Text style={styles.menuSubtitle}>Cập nhật thông tin cá nhân</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color={COLORS.GRAY} />
+             </TouchableOpacity>
+             
+             <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate(ROUTE_NAMES.COMMON.NOTIFICATIONS)}>
+                 <View style={[styles.menuIcon, {backgroundColor: '#FFF3E0'}]}>
+                     <Ionicons name="notifications" size={20} color="#F57C00" />
+                 </View>
+                 <View style={styles.menuContent}>
+                     <Text style={styles.menuTitle}>Thông báo</Text>
+                     <Text style={styles.menuSubtitle}>{unreadCount} thông báo mới</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color={COLORS.GRAY} />
+             </TouchableOpacity>
+
+             <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("Settings")}>
+                 <View style={[styles.menuIcon, {backgroundColor: '#F3E5F5'}]}>
+                     <Ionicons name="settings" size={20} color="#8E24AA" />
+                 </View>
+                 <View style={styles.menuContent}>
+                     <Text style={styles.menuTitle}>Cài đặt</Text>
+                     <Text style={styles.menuSubtitle}>Ngôn ngữ, giao diện...</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color={COLORS.GRAY} />
+             </TouchableOpacity>
+
+             <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate("TermsPrivacy")}>
+                 <View style={[styles.menuIcon, {backgroundColor: '#E3F2FD'}]}>
+                     <Ionicons name="document-text" size={20} color="#1976D2" />
+                 </View>
+                 <View style={styles.menuContent}>
+                     <Text style={styles.menuTitle}>Điều khoản & Chính sách</Text>
+                     <Text style={styles.menuSubtitle}>Quy định sử dụng & Giới thiệu</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color={COLORS.GRAY} />
+             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Bio Section */}
+        {user?.bio && (
+             <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Giới thiệu</Text>
+                <View style={styles.bioContainer}>
+                    <Text style={styles.bioText}>{user.bio}</Text>
+                </View>
+             </View>
+        )}
+      </>
+  );
+
+  const renderActivityTab = () => (
+      <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Hoạt động gần đây</Text>
+          {activityLoading ? (
+               <ActivityIndicator color={COLORS.PRIMARY} style={{marginTop: 20}} />
+          ) : (
+                <View style={styles.timeline}>
+                    {activities.map((item, index) => (
+                        <View key={index} style={styles.timelineItem}>
+                             <View style={styles.timelineLeft}>
+                                 <View style={[styles.dot, {backgroundColor: getDotColor(item.type)}]} />
+                                 {index !== activities.length - 1 && <View style={styles.connector} />}
+                             </View>
+                             <View style={styles.timelineContent}>
+                                 <Text style={styles.timelineTitle}>{item.title}</Text>
+                                 <Text style={styles.timelineDesc}>{item.description}</Text>
+                                 <Text style={styles.timelineTime}>
+                                     {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                                 </Text>
+                             </View>
+                        </View>
+                    ))}
+                    {activities.length === 0 && (
+                        <Text style={{textAlign: 'center', color: COLORS.GRAY, marginTop: 20}}>Chưa có hoạt động nào.</Text>
+                    )}
+                </View>
+          )}
+      </View>
+  );
+
+  const getDotColor = (type: string) => {
+      switch(type) {
+          case 'login': return '#4CAF50';
+          case 'profile': return '#2196F3';
+          case 'favorite': return '#E91E63';
+          case 'game': return '#FF9800';
+          case 'scan': return '#9C27B0';
+          default: return COLORS.GRAY;
+      }
   };
 
-  const mainMenuItems = [
-    {
-      icon: "person-outline",
-      title: "Chỉnh sửa hồ sơ",
-      subtitle: "Cập nhật thông tin cá nhân của bạn",
-      screen: "EditProfile",
-      color: COLORS.PRIMARY,
-      bgColor: "#FFE5E5",
-    },
-    {
-      icon: "notifications-outline",
-      title: "Thông báo",
-      subtitle: "Bạn có " + unreadCount + " thông báo chưa đọc.",
-      screen: ROUTE_NAMES.COMMON.NOTIFICATIONS,
-      color: COLORS.SECONDARY,
-      bgColor: "#E8F8F1",
-    },
-     {
-      icon: "heart-outline",
-      title: "Yêu thích của tôi",
-      subtitle: "Di sản & bài viết bạn yêu thích",
-      screen: "FavoritesList",
-      color: "#E91E63",
-      bgColor: "#FCE4EC",
-    },
-  ];
+  const renderSecurityTab = () => (
+      <View style={styles.section}>
+          <View style={styles.securityCard}>
+               <View style={styles.securityHeader}>
+                   <Ionicons name="shield-checkmark" size={32} color={COLORS.PRIMARY} />
+                   <View style={{flex: 1, marginLeft: 12}}>
+                       <Text style={styles.securityTitle}>Tài khoản được bảo vệ</Text>
+                       <Text style={styles.securityDesc}>Mật khẩu mạnh và không chia sẻ cho người lạ.</Text>
+                   </View>
+               </View>
 
-  const settingsItems = [
-    {
-      icon: "lock-closed-outline",
-      title: "Đổi mật khẩu",
-      subtitle: "Cập nhật mật khẩu của bạn",
-      screen: "ChangePassword",
-    },
-    {
-      icon: "notifications-outline",
-      title: "Thông báo",
-      subtitle: "Quản lý cài đặt thông báo",
-      screen: "NotificationSettings",
-    },
-    {
-      icon: "help-circle-outline",
-      title: "Trợ giúp & Hỗ trợ",
-      subtitle: "Nhận trợ giúp hoặc liên hệ hỗ trợ",
-      screen: "Support",
-    },
-    {
-      icon: "document-text-outline",
-      title: "Điều khoản & Quyền riêng tư",
-      subtitle: "Đọc điều khoản và chính sách quyền riêng tư",
-      screen: "TermsPrivacy",
-    },
-  ];
+                <TouchableOpacity 
+                    style={styles.changePassBtn}
+                    onPress={() => navigation.navigate("ChangePassword")}
+                >
+                    <Text style={styles.changePassText}>Đổi mật khẩu</Text>
+                </TouchableOpacity>
+
+                <View style={styles.loginHistory}>
+                    <Text style={styles.historyTitle}>Đăng nhập lần cuối:</Text>
+                    <Text style={styles.historyValue}>
+                        {user?.updatedAt ? new Date(user.updatedAt).toLocaleString('vi-VN') : 'Vừa xong'}
+                    </Text>
+                </View>
+          </View>
+          
+
+      </View>
+  );
 
   if (loading) {
     return (
@@ -161,26 +357,26 @@ const ProfileScreen = ({navigation}: any) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            colors={[COLORS.PRIMARY]}
-            tintColor={COLORS.PRIMARY}
+            colors={[COLORS.WHITE]} // White spinner on red bg if pulled at top
+            tintColor={COLORS.WHITE}
           />
         }
+        contentContainerStyle={{backgroundColor: "#F8F9FA", minHeight: '100%'}} // Reset bg
       >
-        {/* Compact Header with Gradient */}
-        <LinearGradient colors={[COLORS.SECONDARY, COLORS.DARK_GRAY]} style={styles.headerGradient}>
+        {/* Header with Gradient */}
+        <LinearGradient 
+            colors={[COLORS.PRIMARY, COLORS.PRIMARY]} 
+            style={[styles.headerGradient, {paddingTop: insets.top + 5}]} // Reduced top padding
+        >
           <View style={styles.header}>
-            <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate("Settings")}>
-              <Ionicons name="settings-outline" size={24} color={COLORS.WHITE} />
-            </TouchableOpacity>
-
-            {/* Compact Avatar Section */}
+            {/* Minimal Header: No Title, No Logo */}
+            
             <View style={styles.avatarSection}>
               <View style={styles.avatarContainer}>
                 {user?.avatar ? (
@@ -191,94 +387,39 @@ const ProfileScreen = ({navigation}: any) => {
                   </View>
                 )}
                 <TouchableOpacity style={styles.editAvatarButton} onPress={() => navigation.navigate("EditProfile")}>
-                  <Ionicons name="camera" size={14} color={COLORS.WHITE} />
+                  <Ionicons name="camera" size={12} color={COLORS.PRIMARY} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.userInfoContainer}>
-                <Text style={styles.userName}>{user?.fullName}</Text>
-                <Text style={styles.userEmail}>{user?.email}</Text>
-                <View style={styles.roleBadge}>
-                  <Ionicons name="shield-checkmark" size={10} color={COLORS.WHITE} />
-                  <Text style={styles.roleText}>{user?.role?.toUpperCase()}</Text>
-                </View>
+                <View style={styles.userInfoContainer}>
+                    {/* Name with fallback */}
+                    <Text style={styles.userName} numberOfLines={1}>
+                        {user?.fullName ? user.fullName : user?.email}
+                    </Text>
+                    
+                    {/* Badge */}
+                    <View style={styles.roleBadge}>
+                        <Ionicons name="shield-checkmark" size={10} color={COLORS.PRIMARY} />
+                        <Text style={styles.roleText}>{user?.role?.toUpperCase()}</Text>
+                    </View>
+
+                    {/* Level stacked below */}
+                    <Text style={styles.levelText}>Level: Scholar (Sơ nhập)</Text>
               </View>
             </View>
           </View>
         </LinearGradient>
 
-        {/* Stats Grid 2x2 */}
-        {stats && (
-          <View style={styles.statsGridSection}>
-            {/* Removed Order Stats and Spending Stats */ }
+        <View style={styles.contentContainer}>
+             {renderTabs()}
 
-            <TouchableOpacity
-              style={styles.statsCard}
-              onPress={() => navigation.navigate("FavoritesList")}
-              activeOpacity={0.7}
-            >
-              <View style={styles.statsCardIcon}>
-                <Ionicons name="heart" size={24} color="#E91E63" />
-              </View>
-              <Text style={styles.statsCardLabel}>Yêu thích</Text>
-              <Text style={styles.statsCardValue}>{stats.totalFavorites}</Text>
-              <Text style={styles.statsCardDetail}>Mục đã lưu</Text>
-            </TouchableOpacity>
-
-            {/* Removed My Reviews Card */ }
-          </View>
-        )}
-
-        {/* Main Menu Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tài khoản</Text>
-          <View style={styles.menuContainer}>
-            {mainMenuItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.mainMenuItem, index === mainMenuItems.length - 1 && styles.lastMenuItem]}
-                onPress={() => navigation.navigate(item.screen)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.menuIcon, {backgroundColor: item.bgColor}]}>
-                  <Ionicons name={item.icon as any} size={20} color={item.color} />
-                </View>
-                <View style={styles.mainMenuContent}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.GRAY} />
-              </TouchableOpacity>
-            ))}
-
-            {/* Removed Shipper Menu */ }
-          </View>
+             <View style={styles.tabContent}>
+                 {activeTab === 'profile' && renderProfileTab()}
+                 {activeTab === 'activity' && renderActivityTab()}
+                 {activeTab === 'security' && renderSecurityTab()}
+             </View>
         </View>
-
-        {/* Settings Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cài đặt</Text>
-          <View style={styles.menuContainer}>
-            {settingsItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.settingsMenuItem, index === settingsItems.length - 1 && styles.lastMenuItem]}
-                onPress={() => navigation.navigate(item.screen)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.menuIcon}>
-                  <Ionicons name={item.icon as any} size={20} color={COLORS.GRAY} />
-                </View>
-                <View style={styles.settingsMenuContent}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.GRAY} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
+        
         {/* Logout Button */}
         <View style={styles.logoutSection}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
@@ -287,22 +428,18 @@ const ProfileScreen = ({navigation}: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* App Version */}
         <View style={styles.versionSection}>
-          <Text style={styles.versionText}>SEN Mobile</Text>
-          <Text style={styles.versionNumber}>Version 1.0.0</Text>
+          <Text style={styles.versionText}>SEN Mobile v1.0.0</Text>
         </View>
-
         <View style={styles.bottomPadding} />
       </ScrollView>
-    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: COLORS.PRIMARY, 
   },
   loadingContainer: {
     flex: 1,
@@ -310,244 +447,168 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: COLORS.GRAY,
+    marginTop: 12, fontSize: 14, color: COLORS.GRAY,
   },
   headerGradient: {
-    paddingBottom: 12,
+    paddingBottom: 30, // Deep padding for balance
+    borderBottomLeftRadius: 30, // Smooth curve matching image
+    borderBottomRightRadius: 30,
   },
   header: {
-    paddingTop: 12,
-    paddingHorizontal: 16,
+    paddingTop: 10, paddingHorizontal: 20, // Increased horz padding slightly for better look
+  },
+  headerTopRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, // Reduced from 16
+  },
+  headerTitle: {
+      fontSize: 24, fontWeight: 'bold', color: COLORS.WHITE,
   },
   settingsButton: {
-    position: "absolute",
-    top: 12,
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10,
+    justifyContent: "center", alignItems: "center",
   },
   avatarSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingRight: 50,
+    flexDirection: "row", alignItems: "center", gap: 20, marginTop: 20, paddingHorizontal: 24, // Optimized spacing
   },
-  avatarContainer: {
-    position: "relative",
-  },
+  avatarContainer: { position: "relative" },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 3,
-    borderColor: COLORS.WHITE,
+    width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: "rgba(255,255,255,0.9)", // 80px matched
   },
   avatarPlaceholder: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: COLORS.WHITE,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: COLORS.WHITE, justifyContent: "center", alignItems: "center",
+    borderWidth: 3, borderColor: "rgba(255,255,255,0.9)",
+  }, 
   avatarText: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: COLORS.PRIMARY,
+    fontSize: 32, fontWeight: "bold", color: COLORS.PRIMARY,
   },
+  userInfoContainer: { justifyContent: 'center', flex: 1 }, 
   editAvatarButton: {
-    position: "absolute",
-    bottom: -4,
-    right: -4,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.PRIMARY,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.WHITE,
-  },
-  userInfoContainer: {
-    flex: 1,
+    position: "absolute", bottom: 0, right: 0,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: COLORS.WHITE, 
+    justifyContent: "center", alignItems: "center",
+    borderWidth: 2, borderColor: COLORS.PRIMARY, 
   },
   userName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: COLORS.WHITE,
-    marginBottom: 2,
+    fontSize: 20, fontWeight: "bold", color: COLORS.WHITE, marginBottom: 4,
   },
   userEmail: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.85)",
-    marginBottom: 6,
+    fontSize: 13, color: "rgba(255,255,255,0.85)", marginBottom: 6,
   },
   roleBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.25)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 3,
-    alignSelf: "flex-start",
+    flexDirection: "row", alignItems: "center", alignSelf: 'flex-start', // Align left
+    backgroundColor: COLORS.WHITE, 
+    paddingHorizontal: 10, paddingVertical: 2, borderRadius: 10, // Slimmer badge
+    marginBottom: 4, // Space for Level
   },
   roleText: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: COLORS.WHITE,
-    letterSpacing: 0.3,
+    fontSize: 10, fontWeight: "800", color: COLORS.PRIMARY, letterSpacing: 0.5,
+  },
+  levelText: {
+      fontSize: 12, color: "rgba(255,255,255,0.85)", fontWeight: '400',
+  },
+  contentContainer: {
+      flex: 1, paddingHorizontal: 16, marginTop: 20,
+  },
+  tabContainer: {
+      flexDirection: 'row', backgroundColor: COLORS.WHITE,
+      padding: 4, borderRadius: 12, marginBottom: 20,
+      shadowColor: "#000", shadowOffset: {width: 0, height: 2},
+      shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+  },
+  tabButton: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+      paddingVertical: 10, borderRadius: 8, gap: 6,
+  },
+  activeTabButton: {
+      backgroundColor: '#E8F5E9', // Light green
+  },
+  tabText: {
+      fontSize: 14, fontWeight: '500', color: COLORS.GRAY,
+  },
+  activeTabText: {
+      color: COLORS.PRIMARY, fontWeight: '600',
+  },
+  tabContent: {
+      minHeight: 300,
   },
   statsGridSection: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    paddingHorizontal: 16,
-    marginTop: 10,
-    marginBottom: 4,
-    gap: 12,
+    flexDirection: "row", gap: 12, marginBottom: 24,
   },
   statsCard: {
-    width: "48%",
-    backgroundColor: COLORS.WHITE,
-    padding: 10,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
-    borderRadius: 10,
+    flex: 1, backgroundColor: COLORS.WHITE,
+    padding: 16, borderRadius: 12, alignItems: "center",
+    shadowColor: "#000", shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   statsCardIcon: {
-    width: 42,
-    height: 42,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  statsCardLabel: {
-    fontSize: 11,
-    color: COLORS.GRAY,
-    fontWeight: "500",
-    marginBottom: 4,
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: "center", alignItems: "center", marginBottom: 8,
   },
   statsCardValue: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: COLORS.DARK,
-    marginBottom: 2,
+    fontSize: 20, fontWeight: "bold", color: COLORS.DARK, marginBottom: 2,
   },
-  statsCardDetail: {
-    fontSize: 9,
-    color: COLORS.GRAY,
+  statsCardLabel: {
+    fontSize: 12, color: COLORS.GRAY,
   },
   section: {
-    paddingHorizontal: 16,
-    marginTop: 12,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: COLORS.DARK,
-    marginBottom: 8,
+    fontSize: 16, fontWeight: "700", color: COLORS.DARK, marginBottom: 12,
   },
   menuContainer: {
-    backgroundColor: COLORS.WHITE,
-    borderRadius: 14,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: COLORS.WHITE, borderRadius: 12, overflow: "hidden",
   },
-  mainMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
-  },
-  lastMenuItem: {
-    borderBottomWidth: 0,
-  },
-  mainMenuContent: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.DARK,
-    marginBottom: 2,
-  },
-  menuSubtitle: {
-    fontSize: 12,
-    color: COLORS.GRAY,
-  },
-  settingsMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
+  menuItem: {
+      flexDirection: 'row', alignItems: 'center', padding: 16,
+      borderBottomWidth: 1, borderBottomColor: '#F5F5F5',
   },
   menuIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
+      width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
-  settingsMenuContent: {
-    flex: 1,
+  menuContent: { flex: 1 },
+  menuTitle: { fontSize: 15, fontWeight: '600', color: COLORS.DARK, marginBottom: 2 },
+  menuSubtitle: { fontSize: 12, color: COLORS.GRAY },
+  
+  // Timeline Styles
+  timeline: { paddingLeft: 10 },
+  timelineItem: { flexDirection: 'row', paddingBottom: 24 },
+  timelineLeft: { alignItems: 'center', marginRight: 16, width: 20 },
+  dot: { width: 12, height: 12, borderRadius: 6, zIndex: 1 },
+  connector: { width: 2, backgroundColor: '#E0E0E0', flex: 1, marginTop: -4, marginBottom: -4 },
+  timelineContent: { flex: 1, backgroundColor: COLORS.WHITE, padding: 12, borderRadius: 8 },
+  timelineTitle: { fontSize: 14, fontWeight: '700', color: COLORS.DARK, marginBottom: 4 },
+  timelineDesc: { fontSize: 13, color: COLORS.GRAY, marginBottom: 8 },
+  timelineTime: { fontSize: 11, color: '#999' },
+  
+  // Security Styles
+  securityCard: { backgroundColor: COLORS.WHITE, borderRadius: 12, padding: 20, marginBottom: 16 },
+  securityHeader: { flexDirection: 'row', marginBottom: 20 },
+  securityTitle: { fontSize: 16, fontWeight: 'bold' },
+  securityDesc: { fontSize: 13, color: COLORS.GRAY, marginTop: 4 },
+  changePassBtn: { backgroundColor: COLORS.PRIMARY, borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginBottom: 20 },
+  changePassText: { color: COLORS.WHITE, fontWeight: '600' },
+  loginHistory: { borderTopWidth: 1, borderTopColor: '#F0F0F0', paddingTop: 16 },
+  historyTitle: { fontSize: 12, color: COLORS.GRAY },
+  historyValue: { fontSize: 14, fontWeight: '500', marginTop: 4 },
+  
+  bioContainer: {
+      backgroundColor: COLORS.WHITE, padding: 16, borderRadius: 12,
   },
-  logoutSection: {
-    paddingHorizontal: 16,
-    marginTop: 20,
-  },
+  bioText: { fontSize: 14, color: COLORS.DARK_GRAY, fontStyle: 'italic', lineHeight: 22 },
+
+  logoutSection: { paddingHorizontal: 16, marginTop: 8 },
   logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    color: COLORS.WHITE,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: COLORS.PRIMARY,
-    gap: 8,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    paddingVertical: 14, borderRadius: 12, backgroundColor: COLORS.PRIMARY, gap: 8,
   },
-  logoutText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.WHITE,
-  },
-  versionSection: {
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  versionText: {
-    fontSize: 12,
-    color: COLORS.GRAY,
-    fontWeight: "500",
-  },
-  versionNumber: {
-    fontSize: 11,
-    color: COLORS.GRAY,
-  },
-  bottomPadding: {
-    height: 16,
-  },
+  logoutText: { fontSize: 15, fontWeight: "600", color: COLORS.WHITE },
+  versionSection: { alignItems: "center", paddingVertical: 16 },
+  versionText: { fontSize: 12, color: COLORS.GRAY },
+  bottomPadding: { height: 20 },
 });
 
 export default ProfileScreen;

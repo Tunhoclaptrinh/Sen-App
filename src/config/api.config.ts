@@ -1,5 +1,6 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || "http://192.168.137.1:3000/api",
+  // Use 10.0.2.2 for Android Emulator to access host machine's localhost
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:3000/api",
   TIMEOUT: 30000,
   RETRY_COUNT: 3,
 };
@@ -51,6 +52,11 @@ export const ENDPOINTS = {
     START_LEVEL: (id: number | string) => `/game/levels/${id}/start`,
     COLLECT_CLUE: (id: number | string) => `/game/levels/${id}/collect-clue`,
     COMPLETE_LEVEL: (id: number | string) => `/game/levels/${id}/complete`,
+    // Session Management
+    NEXT_SCREEN: (sessionId: number | string) => `/game/sessions/${sessionId}/next-screen`,
+    SUBMIT_ANSWER: (sessionId: number | string) => `/game/sessions/${sessionId}/submit-answer`,
+    SUBMIT_TIMELINE: (sessionId: number | string) => `/game/sessions/${sessionId}/submit-timeline`,
+    
     MUSEUM: "/game/museum",
     BADGES: "/game/badges",
     LEADERBOARD: "/game/leaderboard",

@@ -25,6 +25,9 @@ export interface User extends BaseEntity {
   avatar?: string;
   points: number;
   level: number;
+  phone?: string;
+  bio?: string;
+  lastLogin?: string;
 }
 
 export interface AuthResponse {
@@ -46,7 +49,7 @@ export interface RegisterRequest {
   fullName?: string;
 }
 
-export type FavoriteType = 'restaurant' | 'product' | 'heritage' | 'article';
+export type FavoriteType = 'restaurant' | 'product' | 'heritage' | 'article' | 'artifact';
 
 export interface Favorite {
   id: number;

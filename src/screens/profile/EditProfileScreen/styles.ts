@@ -134,6 +134,17 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: 25,
   },
+  bioInput: {
+      flex: 1,
+      backgroundColor: COLORS.LIGHT_GRAY,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: "#E5E7EB",
+      fontSize: 15,
+      color: COLORS.DARK,
+  },
 });
 
 export default styles;

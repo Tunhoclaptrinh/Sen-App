@@ -45,6 +45,18 @@ export const fetchHeritageDetail = createAsyncThunk(
   }
 );
 
+export const fetchArtifacts = createAsyncThunk(
+  "heritage/fetchArtifacts",
+  async (id: number | string, { rejectWithValue }) => {
+    try {
+      const response = await HeritageService.getArtifacts(id);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const heritageSlice = createSlice({
   name: "heritage",
   initialState,
@@ -69,6 +81,15 @@ const heritageSlice = createSlice({
       })
       .addCase(fetchHeritageDetail.fulfilled, (state, action) => {
         state.currentItem = action.payload;
+      })
+      .addCase(fetchArtifacts.pending, (state) => {
+          // You might want separate loading state for artifacts or just fail silently
+      })
+      .addCase(fetchArtifacts.fulfilled, (state, action) => {
+          state.artifacts = action.payload || [];
+      })
+      .addCase(fetchArtifacts.rejected, (state) => {
+          state.artifacts = [];
       });
   },
 });

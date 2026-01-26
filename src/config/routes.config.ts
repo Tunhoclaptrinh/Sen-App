@@ -11,6 +11,7 @@ export type RouteParams = {
   // Main Stack - Home
   HomeScreen: undefined;
   HeritageDetail: {id: number | string};
+  ArtifactDetail: {artifact: any};
   
   // Main Stack - Discovery
   DiscoveryScreen: undefined;
@@ -61,6 +62,7 @@ export const ROUTE_NAMES = {
   HOME: {
     SCREEN: "HomeScreen",
     HERITAGE_DETAIL: "HeritageDetail",
+    ARTIFACT_DETAIL: "ArtifactDetail",
   },
 
   // Profile Stack

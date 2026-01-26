@@ -44,24 +44,24 @@ class ApiClient {
     );
   }
 
-  get<T>(url: string, params?: any) {
-    return this.client.get<T>(url, {params});
+  get<T>(url: string, params?: any): Promise<T> {
+    return this.client.get(url, {params}) as Promise<T>;
   }
 
-  post<T>(url: string, data?: any) {
-    return this.client.post<T>(url, data);
+  post<T>(url: string, data?: any): Promise<T> {
+    return this.client.post(url, data) as Promise<T>;
   }
 
-  put<T>(url: string, data?: any) {
-    return this.client.put<T>(url, data);
+  put<T>(url: string, data?: any): Promise<T> {
+    return this.client.put(url, data) as Promise<T>;
   }
 
-  patch<T>(url: string, data?: any) {
-    return this.client.patch<T>(url, data);
+  patch<T>(url: string, data?: any): Promise<T> {
+    return this.client.patch(url, data) as Promise<T>;
   }
 
-  delete<T>(url: string) {
-    return this.client.delete<T>(url);
+  delete<T>(url: string): Promise<T> {
+    return this.client.delete(url) as Promise<T>;
   }
 
   setBaseUrl(url: string) {
