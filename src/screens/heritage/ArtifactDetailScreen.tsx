@@ -19,9 +19,14 @@ const {width, height} = Dimensions.get("window");
 const ArtifactDetailScreen = ({route, navigation}: any) => {
   const {artifact} = route.params || {};
 
-  // If no artifact data, go back
+  React.useEffect(() => {
+    if (!artifact) {
+      navigation.goBack();
+    }
+  }, [artifact, navigation]);
+
+  // If no artifact data, return null (allow useEffect to trigger goBack)
   if (!artifact) {
-    navigation.goBack();
     return null;
   }
 
@@ -35,7 +40,7 @@ const ArtifactDetailScreen = ({route, navigation}: any) => {
         {/* Artifact Image Area */}
         <View style={styles.imageContainer}>
           <Image
-            source={{uri: getImageUrl(artifact.imageUrl)}}
+            source={{uri: getImageUrl(artifact.image)}}
             style={styles.artifactImage}
             resizeMode="contain"
           />
@@ -109,14 +114,20 @@ const ArtifactDetailScreen = ({route, navigation}: any) => {
              </Text>
              {artifact.historical_context && (
                 <View style={styles.contextBox}>
-                   <Text style={styles.contextTitle}>Ngữ cảnh lịch sử</Text>
+                   <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
+                       <Ionicons name="book-outline" size={16} color={COLORS.PRIMARY} />
+                       <Text style={[styles.contextTitle, {marginBottom: 0, marginLeft: 6}]}>Ngữ cảnh lịch sử</Text>
+                   </View>
                    <Text style={styles.contextText}>{artifact.historical_context}</Text>
                 </View>
              )}
              {artifact.cultural_significance && (
-                <View style={[styles.contextBox, {marginTop: 12}]}>
-                   <Text style={styles.contextTitle}>Ý nghĩa văn hóa</Text>
-                   <Text style={styles.contextText}>{artifact.cultural_significance}</Text>
+                <View style={[styles.contextBox, {marginTop: 12, backgroundColor: '#F3E5F5', borderColor: '#9C27B0'}]}>
+                   <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 6}}>
+                       <Ionicons name="rose-outline" size={16} color="#9C27B0" />
+                       <Text style={[styles.contextTitle, {marginBottom: 0, marginLeft: 6, color: '#9C27B0'}]}>Ý nghĩa văn hóa</Text>
+                   </View>
+                   <Text style={[styles.contextText, {color: '#4A148C'}]}>{artifact.cultural_significance}</Text>
                 </View>
              )}
           </View>

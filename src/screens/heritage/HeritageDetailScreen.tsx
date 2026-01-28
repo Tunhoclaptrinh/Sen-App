@@ -14,7 +14,7 @@ import {
 import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "@/src/store";
 import RenderHtml from 'react-native-render-html';
-import {fetchHeritageDetail, fetchArtifacts} from "@/src/store/slices/heritageSlice";
+import {fetchHeritageDetail, fetchArtifacts, fetchTimeline, fetchNearbySites} from "@/src/store/slices/heritageSlice";
 import {getImageUrl} from "@/src/utils/formatters";
 import {ROUTE_NAMES} from "@/src/config/routes.config";
 import {Ionicons} from "@expo/vector-icons";
@@ -26,16 +26,33 @@ const HeritageDetailScreen = ({route, navigation}: any) => {
   const {id} = route.params || {};
   const dispatch = useDispatch<any>();
 
-  const {currentItem, artifacts, loading, error} = useSelector((state: RootState) => state.heritage);
+  const {currentItem, artifacts, timelineEvents, nearbyItems, loading, error} = useSelector((state: RootState) => state.heritage);
   const [isExpanded, setIsExpanded] = useState(false);
-
+  const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
     if (id) {
       dispatch(fetchHeritageDetail(id));
       dispatch(fetchArtifacts(id));
+      dispatch(fetchTimeline(id));
     }
   }, [id, dispatch]);
+
+  useEffect(() => {
+    if (currentItem) {
+      setIsLiked(currentItem.isFavorite || false);
+      // Fetch nearby if we have coordinates
+      if (currentItem.latitude && currentItem.longitude) {
+          dispatch(fetchNearbySites({lat: currentItem.latitude, long: currentItem.longitude}));
+      }
+    }
+  }, [currentItem]);
+
+  const handleToggleFavorite = () => {
+    setIsLiked(!isLiked);
+    // Ideally dispatch an action here to persist: dispatch(toggleFavoriteHeritage(id));
+    Alert.alert("Thông báo", !isLiked ? "Đã thêm vào danh sách yêu thích!" : "Đã xoá khỏi danh sách yêu thích!");
+  };
 
   if (loading || !currentItem) {
     return (
@@ -45,47 +62,61 @@ const HeritageDetailScreen = ({route, navigation}: any) => {
     );
   }
 
-  // Handle back navigation properly
-  const handleBack = () => {
-    navigation.goBack();
-  };
-
   return (
     <View style={styles.container}>
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {/* Cover Image */}
         <View style={styles.coverContainer}>
-          {currentItem.imageUrl ? (
-            <Image source={{uri: getImageUrl(currentItem.imageUrl)}} style={styles.coverImage} resizeMode="cover" />
+          {currentItem.image ? (
+            <Image source={{uri: getImageUrl(currentItem.image)}} style={styles.coverImage} resizeMode="cover" />
           ) : (
             <View style={[styles.coverImage, styles.placeholder]}>
                <Ionicons name="image-outline" size={64} color={COLORS.WHITE} />
             </View>
           )}
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-             <Ionicons name="arrow-back" size={24} color={COLORS.WHITE} />
-          </TouchableOpacity>
           <View style={styles.overlay} />
           <View style={styles.headerContent}>
              <Text style={styles.title}>{currentItem.name}</Text>
              <View style={styles.locationTag}>
                 <Ionicons name="location" size={14} color={COLORS.WHITE} />
-                <Text style={styles.locationText}>{currentItem.location}</Text>
-             </View>
-             
-             {/* Interaction Row */}
-             <View style={styles.interactionRow}>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert("Thông báo", "Đã lưu vào danh sách yêu thích!")}>
-                   <Ionicons name="heart-outline" size={24} color={COLORS.WHITE} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert("Thông báo", "Đã sao chép liên kết!")}>
-                   <Ionicons name="share-social-outline" size={24} color={COLORS.WHITE} />
-                </TouchableOpacity>
+                <Text style={styles.locationText}>{currentItem.address || currentItem.location}</Text>
              </View>
           </View>
         </View>
 
         <View style={styles.content}>
+           
+           {/* Action Buttons Row - New Design */}
+           <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.actionItem} onPress={handleToggleFavorite}>
+                  <View style={[styles.actionIconCircle, isLiked ? {backgroundColor: '#FFE5E5'} : {backgroundColor: '#F5F5F5'}]}>
+                      <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? COLORS.ERROR : COLORS.GRAY} />
+                  </View>
+                  <Text style={[styles.actionLabel, isLiked && {color: COLORS.ERROR}]}>Yêu thích</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionItem} onPress={() => Alert.alert("Thông báo", "Đã sao chép liên kết!")}>
+                  <View style={[styles.actionIconCircle, {backgroundColor: '#E5F1FF'}]}>
+                      <Ionicons name="share-social-outline" size={24} color={COLORS.PRIMARY} />
+                  </View>
+                  <Text style={styles.actionLabel}>Chia sẻ</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionItem} onPress={() => Alert.alert("Thông báo", "Đang mở bản đồ...")}>
+                  <View style={[styles.actionIconCircle, {backgroundColor: '#E8F5E9'}]}>
+                      <Ionicons name="map-outline" size={24} color={COLORS.SUCCESS} />
+                  </View>
+                  <Text style={styles.actionLabel}>Bản đồ</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionItem} onPress={() => Alert.alert("Thông báo", "Đang phát Audio Guide...")}>
+                  <View style={[styles.actionIconCircle, {backgroundColor: '#FFF8E1'}]}>
+                      <Ionicons name="headset-outline" size={24} color={COLORS.WARNING} />
+                  </View>
+                  <Text style={styles.actionLabel}>Audio Guide</Text>
+              </TouchableOpacity>
+           </View>
+
            {/* Info Grid Section - Polished */}
            <View style={styles.section}>
              <Text style={styles.sectionTitle}>Thông tin tham quan</Text>
@@ -115,20 +146,31 @@ const HeritageDetailScreen = ({route, navigation}: any) => {
                    <View style={styles.infoItem}>
                       <Ionicons name="calendar-outline" size={20} color={COLORS.PRIMARY} />
                       <View style={{marginLeft: 8}}>
-                         <Text style={styles.infoLabel}>Thành lập</Text>
-                         <Text style={styles.infoValue}>{currentItem.year_established || "Đang cập nhật"}</Text>
+                         <Text style={styles.infoLabel}>Thành lập / Niên đại</Text>
+                         <Text style={styles.infoValue}>{currentItem.year_established || currentItem.cultural_period || "Đang cập nhật"}</Text>
                       </View>
                    </View>
                    <View style={styles.infoItem}>
-                      <Ionicons name="star-outline" size={20} color={COLORS.PRIMARY} />
+                      <Ionicons name="ribbon-outline" size={20} color={COLORS.PRIMARY} />
                       <View style={{marginLeft: 8}}>
-                         <Text style={styles.infoLabel}>Đánh giá</Text>
-                         <Text style={styles.infoValue}>
-                            {currentItem.rating || "4.5"}/5 ({currentItem.total_reviews || 100})
-                         </Text>
+                         <Text style={styles.infoLabel}>Xếp hạng</Text>
+                         <Text style={styles.infoValue}>{currentItem.significance || "Cấp Quốc gia"}</Text>
                       </View>
                    </View>
                 </View>
+
+                {/* Row 3 - Optional: UNESCO */}
+                {currentItem.unesco_listed && (
+                   <View style={[styles.infoRow, {marginBottom: 0}]}>
+                       <View style={styles.infoItem}>
+                          <Ionicons name="globe-outline" size={20} color={COLORS.PRIMARY} />
+                          <View style={{marginLeft: 8}}>
+                             <Text style={styles.infoLabel}>Danh hiệu</Text>
+                             <Text style={styles.infoValue}>Di sản UNESCO</Text>
+                          </View>
+                       </View>
+                   </View>
+                )}
              </View>
            </View>
 
@@ -197,7 +239,7 @@ const HeritageDetailScreen = ({route, navigation}: any) => {
                             onPress={() => navigation.navigate(ROUTE_NAMES.HOME.ARTIFACT_DETAIL, {artifact})}
                           >
                               <Image 
-                                source={{uri: getImageUrl(artifact.imageUrl)}} 
+                                source={{uri: getImageUrl(artifact.image)}} 
                                 style={styles.artifactImage} 
                                 resizeMode="cover"
                               />
@@ -209,6 +251,56 @@ const HeritageDetailScreen = ({route, navigation}: any) => {
                   </ScrollView>
               ) : (
                   <Text style={{color: COLORS.GRAY, fontStyle: 'italic'}}>Chưa có thông tin hiện vật.</Text>
+              )}
+           </View>
+
+            {/* Related Heritage (Nearby) */}
+           <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Di sản liên quan (Gần đây)</Text>
+              {nearbyItems && nearbyItems.length > 0 ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingRight: 20}}>
+                      {nearbyItems.map((item, index) => (
+                          <TouchableOpacity 
+                            key={item.id || index} 
+                            style={styles.artifactCard}
+                            onPress={() => navigation.push(ROUTE_NAMES.HOME.HERITAGE_DETAIL, {id: item.id})}
+                          >
+                              <Image 
+                                source={{uri: getImageUrl(item.image)}} 
+                                style={styles.artifactImage} 
+                                resizeMode="cover"
+                              />
+                              <View style={styles.artifactOverlay}>
+                                  <Text style={styles.artifactName} numberOfLines={2}>{item.name}</Text>
+                              </View>
+                          </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+              ) : (
+                  <Text style={{color: COLORS.GRAY, fontStyle: 'italic'}}>Không có địa điểm liên quan gần đây.</Text>
+              )}
+           </View>
+           
+           {/* Related Articles/History (Timeline) */}
+           <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Dòng lịch sử & Bài viết</Text>
+              {timelineEvents && timelineEvents.length > 0 ? (
+                  <View>
+                      {timelineEvents.map((event, index) => (
+                          <View key={index} style={{flexDirection: 'row', marginBottom: 16}}>
+                              <View style={{width: 60, alignItems: 'center'}}>
+                                  <Text style={{fontWeight: '700', color: COLORS.PRIMARY}}>{event.year}</Text>
+                                  <View style={{width: 1, flex: 1, backgroundColor: '#DDD', marginTop: 4}} />
+                              </View>
+                              <View style={{flex: 1, backgroundColor: '#F9F9F9', padding: 12, borderRadius: 8}}>
+                                  <Text style={{fontWeight: '600', marginBottom: 4}}>{event.title}</Text>
+                                  <Text style={{color: COLORS.DARK_GRAY, fontSize: 13}} numberOfLines={3}>{event.description}</Text>
+                              </View>
+                          </View>
+                      ))}
+                  </View>
+              ) : (
+                  <Text style={{color: COLORS.GRAY, fontStyle: 'italic'}}>Chưa có bài viết lịch sử liên quan.</Text>
               )}
            </View>
            
@@ -234,23 +326,6 @@ const HeritageDetailScreen = ({route, navigation}: any) => {
         </View>
       </ScrollView>
 
-      {/* Action Footer (e.g. Map, Audio Guide) */}
-      <View style={styles.footer}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => Alert.alert("Thông báo", "Tính năng Bản đồ đang được phát triển")}
-          >
-              <Ionicons name="map-outline" size={20} color={COLORS.WHITE} />
-              <Text style={styles.actionText}>Bản đồ</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.secondaryAction]}
-            onPress={() => Alert.alert("Thông báo", "Tính năng Audio Guide đang được phát triển")}
-          >
-              <Ionicons name="headset-outline" size={20} color={COLORS.PRIMARY} />
-              <Text style={[styles.actionText, {color: COLORS.PRIMARY}]}>Audio Guide</Text>
-          </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -330,7 +405,7 @@ const styles = StyleSheet.create({
   },
   content: {
       padding: 20,
-      paddingBottom: 100,
+      paddingBottom: 40,
   },
   section: {
       marginBottom: 24,
@@ -393,6 +468,30 @@ const styles = StyleSheet.create({
      backgroundColor: 'rgba(255,255,255,0.2)',
      justifyContent: 'center',
      alignItems: 'center',
+  },
+  // New Action Row Styles
+  actionRow: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     marginBottom: 24,
+     paddingHorizontal: 10,
+  },
+  actionItem: {
+     alignItems: 'center',
+     width: 70,
+  },
+  actionIconCircle: {
+     width: 48,
+     height: 48,
+     borderRadius: 24,
+     justifyContent: 'center',
+     alignItems: 'center',
+     marginBottom: 8,
+  },
+  actionLabel: {
+     fontSize: 12,
+     color: COLORS.GRAY,
+     fontWeight: '600',
   },
   gameCard: {
      backgroundColor: COLORS.SECONDARY, // Use secondary or a specific gradient color

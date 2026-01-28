@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { HeritageService } from "../../services/heritage.service";
-import { HeritageSite, Artifact } from "../../types/heritage.types";
+import { HeritageSite, Artifact, TimelineEvent } from "../../types/heritage.types";
 
 interface HeritageState {
   items: HeritageSite[];
@@ -8,14 +8,22 @@ interface HeritageState {
   loading: boolean;
   error: string | null;
   artifacts: Artifact[];
+  filteredArtifacts: Artifact[];
+  timelineEvents: TimelineEvent[];
+  nearbyItems: HeritageSite[];
+  historyArticles: TimelineEvent[];
 }
 
 const initialState: HeritageState = {
   items: [],
+  filteredArtifacts: [],
   currentItem: null,
   loading: false,
   error: null,
   artifacts: [],
+  timelineEvents: [],
+  nearbyItems: [],
+  historyArticles: [],
 };
 
 export const fetchHeritageSites = createAsyncThunk(
@@ -23,9 +31,16 @@ export const fetchHeritageSites = createAsyncThunk(
   async (params: any, { rejectWithValue }) => {
     try {
       const response = await HeritageService.getAll(params);
-      if (response && response.data) {
-          return (response.data as unknown) as HeritageSite[];
+      console.log("[fetchHeritageSites] Response:", JSON.stringify(response, null, 2));
+
+      if (response && (response as any).success && (response as any).data) {
+          return (response as any).data as HeritageSite[];
       }
+      // Fallback if response is already the array
+      if (Array.isArray(response)) {
+          return response as HeritageSite[];
+      }
+      
       return [] as HeritageSite[];
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -38,8 +53,26 @@ export const fetchHeritageDetail = createAsyncThunk(
   async (id: number | string, { rejectWithValue }) => {
     try {
       const response = await HeritageService.getOne(id);
-      return response.data;
+      console.log(`[fetchHeritageDetail] Response for ${id}:`, JSON.stringify(response, null, 2));
+      
+      // Robust unwrapping logic
+      let data = response;
+      
+      // If it's an axios response with a data property that looks like our API response
+      if (data && (data as any).data && (data as any).data.success) {
+          data = (data as any).data;
+      }
+      
+      // If it's our API response wrapper
+      if (data && (data as any).success && (data as any).data) {
+          console.log("[fetchHeritageDetail] Unwrapped data successfully");
+          return (data as any).data;
+      }
+
+      // If it's just the data direct
+      return data; 
     } catch (error: any) {
+      console.error("[fetchHeritageDetail] Error:", error);
       return rejectWithValue(error.message);
     }
   }
@@ -50,11 +83,72 @@ export const fetchArtifacts = createAsyncThunk(
   async (id: number | string, { rejectWithValue }) => {
     try {
       const response = await HeritageService.getArtifacts(id);
-      return response.data;
+      // Backend returns { success: true, data: items }
+       return response.data.data || [];
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
+);
+
+export const fetchAllArtifacts = createAsyncThunk(
+  "heritage/fetchAllArtifacts",
+  async (params: any, { rejectWithValue }) => {
+    try {
+      const response = await HeritageService.getAllArtifacts(params);
+      if (response && (response as any).success && (response as any).data) {
+          return (response as any).data as Artifact[];
+      }
+      return [] as Artifact[];
+    } catch (error: any) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchTimeline = createAsyncThunk(
+    "heritage/fetchTimeline",
+    async (id: number | string, { rejectWithValue }) => {
+      try {
+        const response = await HeritageService.getTimeline(id);
+        if (response && (response as any).success && (response as any).data) {
+            return (response as any).data as TimelineEvent[];
+        }
+        return [] as TimelineEvent[];
+      } catch (error: any) {
+        return rejectWithValue(error.message);
+      }
+    }
+);
+
+export const fetchNearbySites = createAsyncThunk(
+    "heritage/fetchNearbySites",
+    async ({lat, long}: {lat: number, long: number}, { rejectWithValue }) => {
+      try {
+        const response = await HeritageService.getNearby(lat, long);
+        if (response && (response as any).success && (response as any).data) {
+            return (response as any).data as HeritageSite[];
+        }
+        return [] as HeritageSite[];
+      } catch (error: any) {
+        return rejectWithValue(error.message);
+      }
+    }
+);
+
+export const fetchHistory = createAsyncThunk(
+    "heritage/fetchHistory",
+    async (params: any, { rejectWithValue }) => {
+      try {
+        const response = await HeritageService.getHistory(params);
+        if (response && (response as any).success && (response as any).data) {
+             return (response as any).data as TimelineEvent[];
+        }
+        return [] as TimelineEvent[];
+      } catch (error: any) {
+        return rejectWithValue(error.message);
+      }
+    }
 );
 
 const heritageSlice = createSlice({
@@ -64,6 +158,8 @@ const heritageSlice = createSlice({
     clearCurrentItem: (state) => {
       state.currentItem = null;
       state.artifacts = [];
+      state.timelineEvents = [];
+      state.nearbyItems = [];
     },
   },
   extraReducers: (builder) => {
@@ -90,6 +186,34 @@ const heritageSlice = createSlice({
       })
       .addCase(fetchArtifacts.rejected, (state) => {
           state.artifacts = [];
+      })
+      .addCase(fetchAllArtifacts.pending, (state) => {
+           state.loading = true;
+      })
+      .addCase(fetchAllArtifacts.fulfilled, (state, action) => {
+           state.loading = false;
+           state.filteredArtifacts = action.payload || [];
+      })
+      .addCase(fetchAllArtifacts.rejected, (state) => {
+           state.loading = false;
+           state.filteredArtifacts = [];
+      })
+      .addCase(fetchTimeline.fulfilled, (state, action) => {
+           state.timelineEvents = action.payload || [];
+      })
+      .addCase(fetchNearbySites.fulfilled, (state, action) => {
+           state.nearbyItems = action.payload || [];
+      })
+      .addCase(fetchHistory.pending, (state) => {
+           state.loading = true;
+      })
+      .addCase(fetchHistory.fulfilled, (state, action) => {
+           state.loading = false;
+           state.historyArticles = action.payload || [];
+      })
+      .addCase(fetchHistory.rejected, (state) => {
+           state.loading = false;
+           state.historyArticles = [];
       });
   },
 });

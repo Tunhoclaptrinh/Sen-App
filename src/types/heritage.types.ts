@@ -2,10 +2,12 @@ import { BaseEntity } from './index';
 
 export interface HeritageSite extends BaseEntity {
   name: string;
+  type: string;
   description: string;
   location: string;
+  address?: string;
   category: string;
-  imageUrl: string;
+  image: string;
   gallery: string[];
   historicalEra?: string;
   significance?: string;
@@ -22,12 +24,14 @@ export interface HeritageSite extends BaseEntity {
   total_reviews?: number;
   unesco_listed?: boolean;
   related_history_ids?: number[];
+  related_heritage_ids?: number[];
+  related_artifact_ids?: number[];
 }
 
 export interface Artifact extends BaseEntity {
   name: string;
   description: string;
-  imageUrl: string;
+  image: string;
   gallery: string[];
   heritageId: number | string;
   category: string;

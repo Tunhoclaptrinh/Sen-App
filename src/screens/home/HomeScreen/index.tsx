@@ -11,10 +11,11 @@ import {
   StatusBar,
   ScrollView,
   Dimensions,
+  Alert,
 } from "react-native";
 import {useDispatch, useSelector} from "react-redux";
 import {RootState} from "@/src/store";
-import {fetchHeritageSites} from "@/src/store/slices/heritageSlice";
+import {fetchHeritageSites, fetchAllArtifacts, fetchHistory} from "@/src/store/slices/heritageSlice";
 import {getImageUrl} from "@/src/utils/formatters";
 import {Ionicons} from "@expo/vector-icons";
 import {COLORS} from "@/src/styles/colors";
@@ -31,7 +32,8 @@ const { width } = Dimensions.get("window");
 const CATEGORIES = [
   { id: 'all', name: 'Tất cả', icon: 'grid-outline' },
   { id: 'Di tích', name: 'Di tích', icon: 'business-outline' },
-  { id: 'Cổ vật', name: 'Cổ vật', icon: 'cube-outline' },
+  { id: 'Hiện vật', name: 'Hiện vật', icon: 'cube-outline' },
+  { id: 'Bài viết', name: 'Bài viết', icon: 'newspaper-outline' },
   { id: 'Lễ hội', name: 'Lễ hội', icon: 'flag-outline' },
   { id: 'Bảo tàng', name: 'Bảo tàng', icon: 'library-outline' },
 ];
@@ -39,7 +41,7 @@ const CATEGORIES = [
 const HomeScreen = ({navigation}: any) => {
   const dispatch = useDispatch<any>();
   const {user} = useAuth();
-  const {items, loading, error} = useSelector((state: RootState) => state.heritage);
+  const {items, filteredArtifacts = [], historyArticles = [], loading, error} = useSelector((state: RootState) => state.heritage);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -47,6 +49,15 @@ const HomeScreen = ({navigation}: any) => {
   useEffect(() => {
     loadData();
   }, [dispatch]);
+
+  // Fetch data when category changes
+  useEffect(() => {
+      if (selectedCategory === 'Hiện vật' && filteredArtifacts.length === 0) {
+          dispatch(fetchAllArtifacts({}));
+      } else if (selectedCategory === 'Bài viết' && historyArticles.length === 0) {
+          dispatch(fetchHistory({}));
+      }
+  }, [selectedCategory, dispatch, filteredArtifacts, historyArticles]);
 
   const loadData = async () => {
     try {
@@ -59,8 +70,12 @@ const HomeScreen = ({navigation}: any) => {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
+    // Refresh specific category data
+    if (selectedCategory === 'Hiện vật') dispatch(fetchAllArtifacts({}));
+    if (selectedCategory === 'Bài viết') dispatch(fetchHistory({}));
+    
     setRefreshing(false);
-  }, [dispatch]);
+  }, [dispatch, selectedCategory]);
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -69,7 +84,25 @@ const HomeScreen = ({navigation}: any) => {
   // Filter items
   const filteredItems = items.filter((site) => {
     const matchesSearch = site.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || site.category?.includes(selectedCategory);
+    
+    let matchesCategory = false;
+    if (selectedCategory === 'all') {
+        matchesCategory = true;
+    } else if (selectedCategory === 'Di tích') {
+        matchesCategory = ['historic_building', 'monument', 'archaeological_site'].includes(site.type);
+    } else if (selectedCategory === 'Bảo tàng') {
+        matchesCategory = site.type === 'museum';
+    } else if (selectedCategory === 'Lễ hội') {
+         matchesCategory = site.type === 'festival';
+    } 
+    // Note: Hiện vật (Artifacts) and Bài viết (Articles) are handled separately
+    else if (selectedCategory === 'Hiện vật' || selectedCategory === 'Bài viết') {
+        return false; 
+    } else {
+        // Fallback to string match if category field exists
+        matchesCategory = site.category?.includes(selectedCategory);
+    }
+
     return matchesSearch && matchesCategory;
   });
 
@@ -95,7 +128,7 @@ const HomeScreen = ({navigation}: any) => {
       onPress={() => navigation.navigate(ROUTE_NAMES.HOME.HERITAGE_DETAIL, {id: item.id})}
     >
       <Image 
-        source={{uri: getImageUrl(item.imageUrl)}} 
+        source={{uri: getImageUrl(item.image)}} 
         style={styles.featuredImage} 
         resizeMode="cover"
       />
@@ -106,10 +139,38 @@ const HomeScreen = ({navigation}: any) => {
           <Text style={styles.featuredTitle} numberOfLines={1}>{item.name}</Text>
           <View style={styles.featuredLocation}>
              <Ionicons name="location" size={12} color={COLORS.WHITE} />
-             <Text style={styles.featuredLocationText} numberOfLines={1}>{item.location}</Text>
+             <Text style={styles.featuredLocationText} numberOfLines={1}>{item.address || item.location}</Text>
           </View>
       </LinearGradient>
     </TouchableOpacity>
+  );
+
+  const renderArticleItem = (item: any) => (
+      <TouchableOpacity 
+        key={item.id}
+        style={[styles.card, {marginBottom: 16}]}
+        onPress={() => Alert.alert("Thông báo", "Chi tiết bài viết đang được phát triển")}
+      >
+         <View style={styles.imageContainer}>
+             {/* Use conditional image source for articles from API vs backend */}
+             <Image 
+                source={{uri: item.image ? getImageUrl(item.image) : "https://via.placeholder.com/300"}} 
+                style={styles.image} 
+                resizeMode="cover" 
+             />
+             <View style={[styles.categoryBadge, { backgroundColor: '#E0F7FA' }]}>
+                 <Text style={[styles.categoryBadgeText, { color: '#006064' }]}>{item.category || "Bài viết"}</Text>
+             </View>
+         </View>
+         <View style={styles.cardContent}>
+             <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+             <Text style={{color: COLORS.GRAY, fontSize: 12, marginTop: 4}} numberOfLines={2}>{item.description}</Text>
+             <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 8}}>
+                 <Text style={{fontSize: 11, color: COLORS.PRIMARY, fontWeight: '600'}}>{item.year}</Text>
+                 <Text style={{fontSize: 11, color: COLORS.DARK_GRAY}}>{item.period || ""}</Text>
+             </View>
+         </View>
+      </TouchableOpacity>
   );
 
   const renderRecommendationItem = ({item}: {item: HeritageSite}) => (
@@ -119,8 +180,8 @@ const HomeScreen = ({navigation}: any) => {
       onPress={() => navigation.navigate(ROUTE_NAMES.HOME.HERITAGE_DETAIL, {id: item.id})}
     >
       <View style={styles.imageContainer}>
-        {item.imageUrl ? (
-          <Image source={{uri: getImageUrl(item.imageUrl)}} style={styles.image} resizeMode="cover" />
+        {item.image ? (
+          <Image source={{uri: getImageUrl(item.image)}} style={styles.image} resizeMode="cover" />
         ) : (
              <View style={[styles.image, styles.placeholder]}>
                 <Ionicons name="image-outline" size={48} color={COLORS.GRAY} />
@@ -142,7 +203,7 @@ const HomeScreen = ({navigation}: any) => {
         
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color={COLORS.GRAY} />
-          <Text style={styles.locationText} numberOfLines={1}>{item.location}</Text>
+          <Text style={styles.locationText} numberOfLines={1}>{item.address || item.location}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -219,27 +280,85 @@ const HomeScreen = ({navigation}: any) => {
                  )}
 
                  {/* Recommendations / Main List */}
+                 {/* Recommendations / Main List */}
                  <View style={styles.section}>
                     <View style={styles.sectionTitleRow}>
                         <Text style={styles.sectionTitle}>
-                            {searchQuery ? "Kết quả tìm kiếm" : "Gợi ý cho bạn"}
+                            {searchQuery ? "Kết quả tìm kiếm" : 
+                             (selectedCategory === 'Hiện vật' ? "Kho tàng Hiện vật" : 
+                             (selectedCategory === 'Bài viết' ? "Bài viết & Tin tức" : "Gợi ý cho bạn"))}
                         </Text>
                     </View>
                     
-                    {filteredItems.length === 0 ? (
-                        <EmptyState 
-                            icon="search" 
-                            title="Không tìm thấy di sản" 
-                            subtitle="Thử tìm kiếm với từ khóa khác" 
-                        />
-                    ) : (
+                    {selectedCategory === 'Bài viết' ? (
                         <View style={styles.listContent}>
-                           {filteredItems.map(item => (
-                               <View key={item.id} style={{marginBottom: 16}}>
-                                   {renderRecommendationItem({item})}
-                               </View>
-                           ))}
+                           {historyArticles && historyArticles.length > 0 ? historyArticles.map(renderArticleItem) : (
+                                <EmptyState 
+                                    icon="newspaper-outline" 
+                                    title="Chưa có bài viết" 
+                                    subtitle="Đang cập nhật dữ liệu..." 
+                                />
+                           )}
                         </View>
+                    ) : selectedCategory === 'Hiện vật' ? (
+                        // ARTIFACTS LIST
+                        filteredArtifacts.length === 0 ? (
+                            <EmptyState 
+                                icon="cube-outline" 
+                                title="Chưa có hiện vật" 
+                                subtitle="Đang cập nhật dữ liệu..." 
+                            />
+                        ) : (
+                            <View style={styles.listContent}>
+                                {filteredArtifacts.map((item: any) => (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        style={[styles.card, { marginBottom: 16 }]}
+                                        activeOpacity={0.9}
+                                        onPress={() => navigation.navigate(ROUTE_NAMES.HOME.ARTIFACT_DETAIL, {artifact: item})}
+                                    >
+                                        <View style={styles.imageContainer}>
+                                            {item.image ? (
+                                                <Image source={{uri: getImageUrl(item.image)}} style={styles.image} resizeMode="cover" />
+                                            ) : (
+                                                <View style={[styles.image, styles.placeholder]}>
+                                                    <Ionicons name="image-outline" size={48} color={COLORS.GRAY} />
+                                                </View>
+                                            )}
+                                            <View style={[styles.categoryBadge, { backgroundColor: '#FFF3E0' }]}>
+                                                <Text style={[styles.categoryBadgeText, { color: '#E65100' }]}>Hiện vật</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.cardContent}>
+                                            <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
+                                            <View style={styles.locationRow}>
+                                                <Ionicons name="location-outline" size={14} color={COLORS.GRAY} />
+                                                <Text style={styles.locationText} numberOfLines={1}>
+                                                    {item.location_in_site || item.location || "Đang cập nhật"}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )
+                    ) : (
+                        // HERITAGE SITES LIST
+                        filteredItems.length === 0 ? (
+                            <EmptyState 
+                                icon="search" 
+                                title="Không tìm thấy di sản" 
+                                subtitle="Thử tìm kiếm với từ khóa khác" 
+                            />
+                        ) : (
+                            <View style={styles.listContent}>
+                               {filteredItems.map(item => (
+                                   <View key={item.id} style={{marginBottom: 16}}>
+                                       {renderRecommendationItem({item})}
+                                   </View>
+                               ))}
+                            </View>
+                        )
                     )}
                  </View>
              </>
