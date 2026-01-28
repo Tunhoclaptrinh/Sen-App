@@ -11,6 +11,7 @@ import {COLORS} from "@/src/styles/colors";
 import HomeScreen from "@/src/screens/home/HomeScreen";
 import HeritageDetailScreen from "@screens/heritage/HeritageDetailScreen";
 import ArtifactDetailScreen from "@screens/heritage/ArtifactDetailScreen";
+import ArticleDetailScreen from "@/src/screens/home/ArticleDetailScreen";
 import ProfileScreen from "@screens/profile/ProfileScreen";
 import EditProfileScreen from "@screens/profile/EditProfileScreen";
 import SettingsScreen from "../screens/profile/SettingsScreen";
@@ -75,6 +76,11 @@ const HomeStack = () => (
       name={ROUTE_NAMES.HOME.ARTIFACT_DETAIL}
       component={ArtifactDetailScreen}
       options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={ROUTE_NAMES.HOME.ARTICLE_DETAIL}
+      component={ArticleDetailScreen}
+      options={{headerShown: false, animation: 'slide_from_right'}}
     />
      <Stack.Screen
       name={ROUTE_NAMES.COMMON.NOTIFICATIONS}

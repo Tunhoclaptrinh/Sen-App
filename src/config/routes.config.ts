@@ -63,6 +63,7 @@ export const ROUTE_NAMES = {
     SCREEN: "HomeScreen",
     HERITAGE_DETAIL: "HeritageDetail",
     ARTIFACT_DETAIL: "ArtifactDetail",
+    ARTICLE_DETAIL: "ArticleDetail",
   },
 
   // Profile Stack

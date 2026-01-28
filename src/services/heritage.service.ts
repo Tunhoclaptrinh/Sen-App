@@ -20,6 +20,11 @@ export const HeritageService = {
     return apiClient.get<BaseApiResponse<HeritageSite[]>>(ENDPOINTS.HERITAGE.NEARBY, { latitude: lat, longitude: long });
   },
 
+  getByIds: async (ids: number[]) => {
+      // Use the base endpoint with ids query param
+      return apiClient.get<BaseApiResponse<HeritageSite[]>>(ENDPOINTS.HERITAGE.BASE, { ids: ids.join(',') });
+  },
+
   getArtifacts: async (id: number | string) => {
     return apiClient.get<BaseApiResponse<Artifact[]>>(ENDPOINTS.HERITAGE.ARTIFACTS(id));
   },

@@ -151,6 +151,39 @@ export const fetchHistory = createAsyncThunk(
     }
 );
 
+export const fetchRelatedHeritage = createAsyncThunk(
+    "heritage/fetchRelatedHeritage",
+    async (ids: number[], { rejectWithValue }) => {
+        try {
+            if (!ids || ids.length === 0) return [];
+            const response = await HeritageService.getByIds(ids);
+            if (response && (response as any).success && (response as any).data) {
+                return (response as any).data as HeritageSite[];
+            }
+            return [] as HeritageSite[];
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
+export const fetchRelatedArticles = createAsyncThunk(
+    "heritage/fetchRelatedArticles",
+    async (ids: number[], { rejectWithValue }) => {
+        try {
+            if (!ids || ids.length === 0) return [];
+            // Reuse getHistory with ids param
+            const response = await HeritageService.getHistory({ ids: ids.join(',') });
+            if (response && (response as any).success && (response as any).data) {
+                return (response as any).data as TimelineEvent[];
+            }
+            return [] as TimelineEvent[];
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const heritageSlice = createSlice({
   name: "heritage",
   initialState,
@@ -203,6 +236,12 @@ const heritageSlice = createSlice({
       })
       .addCase(fetchNearbySites.fulfilled, (state, action) => {
            state.nearbyItems = action.payload || [];
+      })
+      .addCase(fetchRelatedHeritage.fulfilled, (state, action) => {
+           state.nearbyItems = action.payload || []; // Reusing nearbyItems for "Related Heritage" to simplify UI binding for now, or create new field
+      })
+      .addCase(fetchRelatedArticles.fulfilled, (state, action) => {
+           state.timelineEvents = action.payload || []; // Update timeline/articles list for detail view
       })
       .addCase(fetchHistory.pending, (state) => {
            state.loading = true;
